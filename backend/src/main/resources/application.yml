@@ -46,3 +46,10 @@ logging:
   structured:
     format:
       console: ecs
+
+locgym:
+  outbox:
+    relay-habilitado: true
+    intervalo-ms: 1000
+    lote: 100
+    timeout-envio-ms: 5000
