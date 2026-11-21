@@ -9,4 +9,4 @@ record OutboxPropriedades(
         @DefaultValue("true") boolean relayHabilitado,
         @DefaultValue("1000") long intervaloMs,
         @DefaultValue("100") int lote,
-        @DefaultValue("5000") long timeoutEnvioMs) {}
+        @DefaultValue("6000") long timeoutEnvioMs) {}

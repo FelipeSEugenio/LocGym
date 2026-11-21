@@ -15,11 +15,20 @@ spring:
       acks: all
       properties:
         enable.idempotence: true
+        # Com o Kafka fora, o envio desiste em ~5 s (padrões: 60 s bloqueado em send() e 120 s de entrega),
+        # para o relay não segurar transação, conexão e lock por muito tempo.
+        max.block.ms: 5000
+        request.timeout.ms: 3000
+        delivery.timeout.ms: 5000
   jackson:
     time-zone: UTC
   mvc:
     problemdetails:
       enabled: true
+  task:
+    scheduling:
+      pool:
+        size: 2   # o relay do outbox não pode monopolizar os agendamentos
 
 server:
   shutdown: graceful
@@ -52,4 +61,6 @@ locgym:
     relay-habilitado: true
     intervalo-ms: 1000
     lote: 100
-    timeout-envio-ms: 5000
+    # Maior que delivery.timeout.ms: quando o relay desiste, o produtor também já desistiu
+    # (evita reenvio de algo ainda pendente no buffer).
+    timeout-envio-ms: 6000
