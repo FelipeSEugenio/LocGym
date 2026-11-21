@@ -1,7 +1,5 @@
 # LocGym — Fase 1 (Fundação) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Entregar o monorepo do LocGym rodando com `docker compose up` — backend Spring Boot com health checks, migrations Flyway e publicação de eventos no Kafka via outbox; frontend Angular com o esqueleto das áreas admin/aluno; CI no GitHub Actions; documentação técnica inicial — sem nenhum módulo de negócio.
 
 **Architecture:** Monolito modular Spring Boot (Spring Modulith verifica fronteiras; ArchUnit garante camadas). Nesta fase existe só o módulo técnico `compartilhado`, com a infraestrutura de eventos (transactional outbox → Kafka). Frontend é uma SPA Angular servida por nginx, que faz proxy de `/api` e `/actuator/health` para o backend.
