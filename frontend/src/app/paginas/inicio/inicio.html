@@ -1,0 +1,27 @@
+<main class="inicio">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>LocGym</mat-card-title>
+      <mat-card-subtitle>Gestão para academias de Jiu-Jitsu</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @switch (estado()) {
+        @case ('online') {
+          <p class="status status--online"><mat-icon>check_circle</mat-icon> Backend online</p>
+        }
+        @case ('indisponivel') {
+          <p class="status status--indisponivel"><mat-icon>error</mat-icon> Backend indisponível</p>
+        }
+        @default {
+          <p class="status">Verificando backend…</p>
+        }
+      }
+    </mat-card-content>
+
+    <mat-card-actions>
+      <a mat-flat-button routerLink="/admin">Painel administrativo</a>
+      <a mat-stroked-button routerLink="/aluno">Portal do aluno</a>
+    </mat-card-actions>
+  </mat-card>
+</main>
