@@ -62,6 +62,6 @@ Angular 22 (standalone, signals), Angular Material, rotas com carregamento sob d
 
 ## Infraestrutura
 
-- `docker-compose.yml`: postgres, kafka, backend, frontend (+ `kafka-ui` no profile `tools`), com healthchecks e ordem de subida por `service_healthy`.
+- `docker-compose.yml`: postgres, kafka, backend, frontend (+ `kafka-ui` no profile `tools`), com healthchecks; o backend espera o Postgres saudável e o Kafka apenas iniciado, e o frontend espera só o backend ter iniciado — nenhum dos dois depende da saúde do Kafka.
 - Imagens multi-stage; backend roda como usuário não-root (uid 10001).
 - CI (GitHub Actions): backend (`./mvnw verify`), frontend (lint, testes, build) e build das imagens.

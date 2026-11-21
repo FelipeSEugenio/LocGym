@@ -33,7 +33,7 @@
 
 1. **Kafka fora do ar ao publicar** → a transação de negócio não pode falhar; o evento fica pendente no outbox e é publicado quando o Kafka voltar. *(Teste em Task 3: `naoPerdeEventoQuandoKafkaFalha`.)*
 2. **Transação revertida** → nenhum evento pode chegar ao Kafka. *(Task 3: `rollbackNaoPublica`.)*
-3. **Ordem de subida do compose** → backend não pode iniciar antes do Postgres/Kafka estarem saudáveis nem ficar em crash-loop. *(Task 6: `depends_on: condition: service_healthy` + verificação manual.)*
+3. **Ordem de subida do compose** → backend não pode iniciar antes do Postgres estar saudável nem ficar em crash-loop; o Kafka precisa apenas ter sido iniciado (revisado na revisão final: exigir Kafka saudável fazia o frontend depender do Kafka, contrariando o critério aprovado). *(Task 6: `depends_on: condition: service_healthy` + verificação manual.)*
 4. **Backend fora do ar visto pelo frontend** → a tela mostra "Backend indisponível", não uma página quebrada. *(Task 5: teste `exibeIndisponivelQuandoHealthFalha`.)*
 5. **Dois relays concorrentes (duas instâncias)** → nenhum evento publicado duas vezes pelo mesmo lote. *(Task 3: `FOR UPDATE SKIP LOCKED` + teste `relaysConcorrentesNaoDuplicam`.)*
 
