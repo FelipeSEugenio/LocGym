@@ -22,6 +22,13 @@
 - **Fora desta fase:** autenticação/JWT, multi-tenancy/RLS, auditoria, ShedLock e todos os módulos de negócio (academia, aluno, professor, plano, matrícula, pagamento, agenda, frequência, relatório, notificação). A Fase 2 começa por identidade + tenancy.
 - Commits no estilo Conventional Commits, terminando com `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
+## Critérios aprovados pelo usuário (obrigatórios)
+
+- **Liveness** (`/actuator/health/liveness`) verifica apenas se o processo Spring Boot está respondendo — nenhum indicador de dependência externa no grupo.
+- **Readiness** (`/actuator/health/readiness`) verifica o banco de dados (`db`) e dependências críticas locais, **mas não o Kafka**.
+- **Outbox com retry e ordem preservada:** evento que falha permanece pendente e é retentado nos ciclos seguintes do relay (com `tentativas`/`ultimo_erro` registrados); a publicação segue a ordem de gravação (`sequencia`) e é interrompida na primeira falha, de modo que nenhum evento posterior é publicado antes de um anterior. Apenas um relay publica por vez (advisory lock no Postgres), e a chave Kafka = `academia_id` mantém os eventos de uma academia — e portanto de cada agregado dela — na mesma partição. Isso garante a ordem por agregado (de forma mais forte: ordem global).
+- **Frontend não depende do Kafka** para iniciar nem para exibir a página inicial: o container do frontend depende só do backend, e o backend fica pronto sem Kafka.
+
 ## Review Focus
 
 1. **Kafka fora do ar ao publicar** → a transação de negócio não pode falhar; o evento fica pendente no outbox e é publicado quando o Kafka voltar. *(Teste em Task 3: `naoPerdeEventoQuandoKafkaFalha`.)*
@@ -98,6 +105,16 @@ class LocGymApplicationIT {
         assertThat(http.getForEntity("/actuator/health/liveness", String.class).getStatusCode().value()).isEqualTo(200);
         assertThat(http.getForEntity("/actuator/health/readiness", String.class).getStatusCode().value()).isEqualTo(200);
     }
+    @Test void readinessIncluiDbMasNaoKafka() {
+        // expor detalhes só para este teste: @SpringBootTest(properties = "management.endpoint.health.group.readiness.show-components=always")
+        var corpo = http.getForEntity("/actuator/health/readiness", String.class).getBody();
+        assertThat(corpo).contains("\"db\"").doesNotContain("kafka");
+    }
+    @Test void livenessNaoIncluiDependencias() {
+        // idem, show-components=always para o grupo liveness
+        var corpo = http.getForEntity("/actuator/health/liveness", String.class).getBody();
+        assertThat(corpo).doesNotContain("\"db\"").doesNotContain("kafka");
+    }
     @Test void migrationsAplicadas() {
         assertThat(jdbc.queryForObject(
             "select count(*) from flyway_schema_history where success", Integer.class)).isGreaterThanOrEqualTo(1);
@@ -113,13 +130,14 @@ class LocGymApplicationIT {
 - [ ] **Step 3: Rodar e ver falhar** — `cd backend && ./mvnw -B verify -Dit.test=LocGymApplicationIT` → FAIL (`outbox_evento` não existe / probes não expostos).
 
 - [ ] **Step 4: Configurar e criar a migration.**
-  - `application.yml`: `spring.application.name=locgym`; datasource via `${DB_URL:jdbc:postgresql://localhost:5432/locgym}`, `${DB_USER:locgym}`, `${DB_PASSWORD:locgym}`; `spring.jpa.hibernate.ddl-auto=validate`, `spring.jpa.open-in-view=false`; `spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}`, producer `acks=all`, `enable.idempotence=true`; `management.endpoints.web.exposure.include=health,info,prometheus`; `management.endpoint.health.probes.enabled=true`; `management.endpoint.health.show-details=never`; `logging.structured.format.console=ecs` (desligado em `application-dev.yml` para logs legíveis); `server.shutdown=graceful`; `spring.mvc.problemdetails.enabled=true`; `spring.jackson.time-zone=UTC`.
+  - `application.yml`: `spring.application.name=locgym`; datasource via `${DB_URL:jdbc:postgresql://localhost:5432/locgym}`, `${DB_USER:locgym}`, `${DB_PASSWORD:locgym}`; `spring.jpa.hibernate.ddl-auto=validate`, `spring.jpa.open-in-view=false`; `spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}`, producer `acks=all`, `enable.idempotence=true`; `management.endpoints.web.exposure.include=health,info,prometheus`; `management.endpoint.health.probes.enabled=true`; `management.endpoint.health.group.liveness.include=livenessState`; `management.endpoint.health.group.readiness.include=readinessState,db`; `management.endpoint.health.show-details=never`; `logging.structured.format.console=ecs` (desligado em `application-dev.yml` para logs legíveis); `server.shutdown=graceful`; `spring.mvc.problemdetails.enabled=true`; `spring.jackson.time-zone=UTC`.
   - Kafka **não** entra no health agregado nesta fase (indisponibilidade do Kafka não deve derrubar o readiness — o outbox absorve). Registrar isso em `09-decisoes-tecnicas.md` (Task 7).
   - `V1__outbox_evento.sql`:
 
 ```sql
 create table outbox_evento (
     id           uuid primary key,
+    sequencia    bigint generated always as identity unique,
     tipo         varchar(100) not null,
     academia_id  uuid,
     versao       int          not null,
@@ -129,10 +147,10 @@ create table outbox_evento (
     tentativas   int          not null default 0,
     ultimo_erro  text
 );
-create index ix_outbox_evento_pendente on outbox_evento (ocorrido_em) where publicado_em is null;
+create index ix_outbox_evento_pendente on outbox_evento (sequencia) where publicado_em is null;
 ```
 
-- [ ] **Step 5: Rodar e ver passar** — `./mvnw -B verify` → BUILD SUCCESS, 4 testes do IT passando.
+- [ ] **Step 5: Rodar e ver passar** — `./mvnw -B verify` → BUILD SUCCESS, 6 testes do IT passando.
 
 - [ ] **Step 6: Commit** — `git add .gitignore .editorconfig backend && git commit -m "feat(backend): esqueleto Spring Boot com health checks, Flyway e Testcontainers"`
 
@@ -224,18 +242,19 @@ public interface PublicadorEventos {
   - `rollbackNaoPublica`: publica dentro de transação marcada `setRollbackOnly()`; `select count(*) from outbox_evento == 0`; `relay.publicarPendentes() == 0`; nenhuma mensagem consumida em 2s.
   - `exigeTransacao`: chamar `publicar` fora de transação lança `IllegalTransactionStateException`.
   - `naoPerdeEventoQuandoKafkaFalha`: com `KafkaTemplate` substituído (`@MockitoSpyBean`) para lançar `KafkaException` no envio, `publicarPendentes() == 0`, linha continua com `publicado_em` nulo, `tentativas == 1`, `ultimo_erro` não vazio; removido o stub, nova chamada publica (`== 1`) e a mensagem chega.
-  - `relaysConcorrentesNaoDuplicam`: grava 50 eventos; chama `publicarPendentes()` em 2 threads simultâneas; soma dos retornos `== 50`; consumidor recebe exatamente 50 `evento_id` distintos.
+  - `relaysConcorrentesNaoDuplicam`: grava 50 eventos; chama `publicarPendentes()` em 2 threads simultâneas (e de novo até retornar 0); soma dos retornos `== 50`; consumidor recebe exatamente 50 `evento_id` distintos.
+  - `preservaOrdemAposFalha`: grava eventos E1, E2, E3 da mesma academia; stub do `KafkaTemplate` falha só no envio de E2 → `publicarPendentes() == 1` (só E1), E3 continua pendente; removido o stub → `publicarPendentes() == 2`; mensagens consumidas na partição, em ordem: E1, E2, E3.
   - `chaveUsaEventoIdQuandoSemAcademia`: evento com `academiaId == null` → chave da mensagem == `evento_id` do envelope.
 
 - [ ] **Step 2: Rodar e ver falhar** — `./mvnw -B verify -Dit.test=OutboxIT` → FAIL de compilação (tipos inexistentes).
 
 - [ ] **Step 3: Implementar.**
   - `PublicadorOutbox` (`@Transactional(propagation = MANDATORY)`): gera `evento_id` (UUID aleatório), `ocorrido_em = Instant.now(clock)` (injetar `Clock`, bean em `OutboxConfig` com `Clock.systemUTC()`), serializa o envelope com o `ObjectMapper`/`JsonMapper` do Spring (o record do evento vira `dados`, sem duplicar `tipo/versao/academiaId` se o Jackson os incluir — usar `@JsonIgnore` não é possível na interface de domínio; montar `dados` via `valueToTree` e remover essas três chaves).
-  - `OutboxRepositorio.buscarPendentesParaPublicar(int limite)`: query nativa `select * from outbox_evento where publicado_em is null order by ocorrido_em limit :limite for update skip locked`.
+  - `OutboxRelay` abre a transação com `select pg_try_advisory_xact_lock(<constante LOCK_OUTBOX>)`; se `false`, outro relay está ativo → retorna 0 sem publicar. `OutboxRepositorio.buscarPendentesParaPublicar(int limite)`: query nativa `select * from outbox_evento where publicado_em is null order by sequencia limit :limite`.
   - `OutboxRelay.publicarPendentes()` numa transação: busca o lote; para cada evento, `kafkaTemplate.send(tipo, chave, payload)` com header `evento_id`, aguarda `get(timeout)`; sucesso → `publicado_em = now`; falha → `tentativas++`, `ultimo_erro = mensagem`, **interrompe o lote** (preserva ordem) e retorna o total já publicado. Log `warn` na falha.
   - `OutboxEvento` é entidade JPA mapeando a tabela (`payload` como `String` com `@JdbcTypeCode(SqlTypes.JSON)`).
 
-- [ ] **Step 4: Rodar e ver passar** — `./mvnw -B verify` → BUILD SUCCESS, 6 testes do `OutboxIT` passando, `ArquiteturaTest` ainda verde.
+- [ ] **Step 4: Rodar e ver passar** — `./mvnw -B verify` → BUILD SUCCESS, 7 testes do `OutboxIT` passando, `ArquiteturaTest` ainda verde.
 
 - [ ] **Step 5: Commit** — `git add backend && git commit -m "feat(backend): publicação de eventos via transactional outbox para Kafka"`
 
@@ -307,7 +326,7 @@ public interface PublicadorEventos {
   - `frontend` — `build: ./frontend`, `depends_on: backend (service_healthy)`.
   - `kafka-ui` (`provectuslabs/kafka-ui` ou sucessor mantido `kafbat/kafka-ui`) com `profiles: [tools]`.
 
-- [ ] **Step 2: Verificar de ponta a ponta** — `cp .env.example .env && docker compose up -d --build`; aguardar `docker compose ps` mostrar os 4 serviços `healthy`; `curl -s localhost:8080/actuator/health` → `{"status":"UP"}`; `curl -s localhost:4200/actuator/health` → `{"status":"UP"}` (via nginx); abrir `http://localhost:4200` → "Backend online". Depois `docker compose stop kafka` → `curl localhost:8080/actuator/health/readiness` continua `UP` (Review Focus 1); `docker compose start kafka`. `docker compose down` (sem `-v`).
+- [ ] **Step 2: Verificar de ponta a ponta** — `cp .env.example .env && docker compose up -d --build`; aguardar `docker compose ps` mostrar os 4 serviços `healthy`; o serviço `frontend` declara `depends_on` apenas `backend` (nunca `kafka`); `curl -s localhost:8080/actuator/health` → `{"status":"UP"}`; `curl -s localhost:4200/actuator/health` → `{"status":"UP"}` (via nginx); abrir `http://localhost:4200` → "Backend online". Depois `docker compose stop kafka` → `curl localhost:8080/actuator/health/readiness` continua `UP` e `http://localhost:4200` continua mostrando "Backend online"; `docker compose restart frontend` com Kafka parado → frontend sobe normalmente; `docker compose start kafka`. `docker compose down` (sem `-v`).
 
 - [ ] **Step 3: Commit** — `git add docker-compose.yml .env.example && git commit -m "build: docker compose com postgres, kafka, backend e frontend"`
 
