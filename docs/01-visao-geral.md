@@ -40,4 +40,4 @@ App mobile nativo, gateway de pagamento, nota fiscal, financeiro completo, estoq
 8. [Roadmap](08-roadmap.md)
 9. [Decisões técnicas (ADRs)](09-decisoes-tecnicas.md)
 
-Fontes: [especificação original](superpowers/specs/2026-11-21-locgym-especificacao.md) e [design aprovado](superpowers/specs/2026-11-21-locgym-design.md).
+Fontes: [especificação original](planejamento/especificacao.md) e [design aprovado](planejamento/design.md).

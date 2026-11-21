@@ -8,7 +8,7 @@
 
 **Tech Stack:** Java 21, Spring Boot (última 4.x estável), Maven Wrapper, Flyway, PostgreSQL 17, Spring Data JPA, Spring Kafka, Spring Modulith, ArchUnit, Testcontainers, springdoc-openapi; Angular (última estável, standalone + signals), Angular Material, angular-eslint; Docker Compose; Apache Kafka 3.9+/4.x em modo KRaft (imagem `apache/kafka`); GitHub Actions.
 
-**Spec:** `docs/superpowers/specs/2026-11-21-locgym-design.md` (requisitos originais em `docs/superpowers/specs/2026-11-21-locgym-especificacao.md`).
+**Spec:** `docs/planejamento/design.md` (requisitos originais em `docs/planejamento/especificacao.md`).
 
 ## Global Constraints
 

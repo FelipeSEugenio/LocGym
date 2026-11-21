@@ -1,6 +1,6 @@
 # 02 — Requisitos funcionais
 
-> Status: **planejado** (implementação a partir da Fase 2). Regras conforme o [design aprovado](superpowers/specs/2026-11-21-locgym-design.md).
+> Status: **planejado** (implementação a partir da Fase 2). Regras conforme o [design aprovado](planejamento/design.md).
 
 ## RF01 — Identidade e acesso
 - Login por e-mail e senha; o e-mail é a credencial, global no sistema.

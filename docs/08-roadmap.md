@@ -9,4 +9,4 @@
 | **5 — Portal e relatórios** | Portal do aluno completo, dashboard e relatórios, dados de demonstração, polimento do README. | Planejada |
 | **6 — Evolução** | Notificações e WhatsApp, gateway de pagamento, relatórios avançados, app mobile, **demo pública online** (deploy, HTTPS, Kafka gerenciado, reset de dados de demo). | Futuro |
 
-Cada fase tem seu próprio plano em `docs/superpowers/plans/` e termina com CI verde e o sistema rodando via `docker compose up`.
+Cada fase tem seu próprio plano em `docs/planejamento/` (`fase-N-plano.md`) e termina com CI verde e o sistema rodando via `docker compose up`.
