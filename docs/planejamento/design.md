@@ -5,7 +5,7 @@ Status: aprovado pelo usuário em 2026-11-21
 
 ## 1. Intenção e porquê
 
-O LocGym é um sistema web multi-tenant de gestão para academias de Jiu-Jitsu (requisitos completos em `docs/superpowers/specs/2026-11-21-locgym-especificacao.md`, que serão desdobrados em `docs/01..09`).
+O LocGym é um sistema web multi-tenant de gestão para academias de Jiu-Jitsu (requisitos completos em `docs/planejamento/especificacao.md`, que serão desdobrados em `docs/01..09`).
 
 **Por quê:** é um **projeto de portfólio**. Ele precisa demonstrar, para recrutadores e avaliadores técnicos, domínio de arquitetura backend (Clean Architecture, modularidade, multi-tenancy, segurança, mensageria), frontend Angular moderno, testes automatizados e DevOps — e precisa ser fácil de rodar e de ler.
 

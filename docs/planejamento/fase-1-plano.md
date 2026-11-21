@@ -1,14 +1,12 @@
 # LocGym — Fase 1 (Fundação) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Entregar o monorepo do LocGym rodando com `docker compose up` — backend Spring Boot com health checks, migrations Flyway e publicação de eventos no Kafka via outbox; frontend Angular com o esqueleto das áreas admin/aluno; CI no GitHub Actions; documentação técnica inicial — sem nenhum módulo de negócio.
 
 **Architecture:** Monolito modular Spring Boot (Spring Modulith verifica fronteiras; ArchUnit garante camadas). Nesta fase existe só o módulo técnico `compartilhado`, com a infraestrutura de eventos (transactional outbox → Kafka). Frontend é uma SPA Angular servida por nginx, que faz proxy de `/api` e `/actuator/health` para o backend.
 
 **Tech Stack:** Java 21, Spring Boot (última 4.x estável), Maven Wrapper, Flyway, PostgreSQL 17, Spring Data JPA, Spring Kafka, Spring Modulith, ArchUnit, Testcontainers, springdoc-openapi; Angular (última estável, standalone + signals), Angular Material, angular-eslint; Docker Compose; Apache Kafka 3.9+/4.x em modo KRaft (imagem `apache/kafka`); GitHub Actions.
 
-**Spec:** `docs/superpowers/specs/2026-11-21-locgym-design.md` (requisitos originais em `docs/superpowers/specs/2026-11-21-locgym-especificacao.md`).
+**Spec:** `docs/planejamento/design.md` (requisitos originais em `docs/planejamento/especificacao.md`).
 
 ## Global Constraints
 
@@ -33,9 +31,9 @@
 
 1. **Kafka fora do ar ao publicar** → a transação de negócio não pode falhar; o evento fica pendente no outbox e é publicado quando o Kafka voltar. *(Teste em Task 3: `naoPerdeEventoQuandoKafkaFalha`.)*
 2. **Transação revertida** → nenhum evento pode chegar ao Kafka. *(Task 3: `rollbackNaoPublica`.)*
-3. **Ordem de subida do compose** → backend não pode iniciar antes do Postgres/Kafka estarem saudáveis nem ficar em crash-loop. *(Task 6: `depends_on: condition: service_healthy` + verificação manual.)*
+3. **Ordem de subida do compose** → backend não pode iniciar antes do Postgres estar saudável nem ficar em crash-loop; o Kafka precisa apenas ter sido iniciado (revisado na revisão final: exigir Kafka saudável fazia o frontend depender do Kafka, contrariando o critério aprovado). *(Task 6: `depends_on` com `service_healthy` para o Postgres e `service_started` para o Kafka + verificação manual com Kafka unhealthy.)*
 4. **Backend fora do ar visto pelo frontend** → a tela mostra "Backend indisponível", não uma página quebrada. *(Task 5: teste `exibeIndisponivelQuandoHealthFalha`.)*
-5. **Dois relays concorrentes (duas instâncias)** → nenhum evento publicado duas vezes pelo mesmo lote. *(Task 3: `FOR UPDATE SKIP LOCKED` + teste `relaysConcorrentesNaoDuplicam`.)*
+5. **Dois relays concorrentes (duas instâncias)** → nenhum evento publicado duas vezes pelo mesmo lote. *(Task 3: advisory lock do PostgreSQL — `pg_try_advisory_xact_lock` — garante um único relay ativo por vez; o código não usa `FOR UPDATE SKIP LOCKED`. Teste `relaysConcorrentesNaoDuplicam`.)*
 
 ---
 

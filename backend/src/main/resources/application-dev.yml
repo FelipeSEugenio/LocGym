@@ -1,0 +1,5 @@
+# Perfil de desenvolvimento: logs legíveis em texto.
+logging:
+  structured:
+    format:
+      console: ""
