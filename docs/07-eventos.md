@@ -65,6 +65,8 @@ Configuração (`locgym.outbox.*`): `relay-habilitado` (true), `intervalo-ms` (1
 
 Chave da mensagem: `academia_id` (ou `evento_id`, se o evento não tiver academia).
 
+**Formato do payload armazenado:** a coluna `outbox_evento.payload` é `jsonb`. O PostgreSQL guarda `jsonb` em forma binária normalizada: **espaços em branco são descartados e a ordem das chaves pode mudar** (chaves duplicadas também são reduzidas à última). Por isso a mensagem publicada no Kafka pode não ser byte a byte igual ao JSON serializado pela aplicação, embora seja semanticamente equivalente. Consumidores devem interpretar o envelope como JSON (por nome de campo) — nunca comparar a string bruta, depender da ordem das chaves ou calcular hash/assinatura sobre o texto da mensagem.
+
 ## Catálogo de tópicos (planejado)
 
 | Tópico | Produtor | Consumidores previstos | Fase |
