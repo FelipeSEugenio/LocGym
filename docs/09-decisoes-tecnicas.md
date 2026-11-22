@@ -8,7 +8,7 @@ Formato: contexto → decisão → consequências. Status entre parênteses.
 **Alternativas descartadas:** microsserviços (infraestrutura multiplicada, autenticação distribuída, consistência eventual em tudo); schema por academia (migrations N vezes, relatórios difíceis).
 **Consequências:** deploy e testes simples; extrair um módulo para serviço próprio no futuro é viável porque os módulos já conversam por API pública e eventos.
 
-## ADR-002 — Schema compartilhado com `academia_id` + Row-Level Security (aceita, Fase 2)
+## ADR-002 — Schema compartilhado com `academia_id` + Row-Level Security (aceita, implementada na Fase 2)
 **Decisão:** isolamento em duas camadas: filtro automático na aplicação e RLS no PostgreSQL, com a academia ativa definida por transação (`SET LOCAL`).
 **Consequências:** um bug de filtro na aplicação não vaza dados (o banco barra); exige usuário de banco sem `BYPASSRLS` e cuidado com jobs que atravessam academias.
 
@@ -22,7 +22,7 @@ Formato: contexto → decisão → consequências. Status entre parênteses.
 **Decisão:** liveness verifica só o processo; readiness verifica o banco, não o Kafka. O frontend não depende do Kafka.
 **Consequências:** uma queda do Kafka não tira o sistema do ar; eventos acumulam no outbox e são publicados quando o Kafka volta. O monitoramento do atraso do outbox (pendentes antigos) passa a ser o sinal de problema no Kafka.
 
-## ADR-005 — Aluno por academia com login global (aceita, Fase 2)
+## ADR-005 — Aluno por academia com login global (aceita, implementada na Fase 2)
 **Decisão:** `usuario` (e-mail + senha) é global; cada academia tem seu próprio registro de aluno, com CPF único por academia. Perfis derivam dos vínculos; a mesma pessoa pode ser admin e aluno.
 **Consequências:** isolamento total dos dados cadastrais; um admin nunca descobre que um e-mail ou CPF existe em outra academia; dados da pessoa podem divergir entre academias (aceito).
 
@@ -44,3 +44,20 @@ Formato: contexto → decisão → consequências. Status entre parênteses.
 
 ## ADR-010 — Versões da stack (aceita, Fase 1)
 Spring Boot 4.2, Spring Modulith 2.2, Java 21, PostgreSQL 17, Apache Kafka 4.3 (KRaft, sem ZooKeeper), Angular 22 com Vitest, Node 24. `KafkaTemplate<String, String>` explícito para o outbox (o padrão do Boot 4 não é tipado). nginx usa o DNS do Docker com re-resolução para tolerar reinícios do backend.
+
+## ADR-011 — JWT RSA + refresh rotativo em cookie HttpOnly (aceita, Fase 2)
+**Decisão:** access token JWT RS256 de 15 min, emitido e validado pelo suporte nativo do Spring Security (sem biblioteca externa), guardado só em memória no navegador. Refresh token aleatório de 256 bits, 7 dias, guardado como SHA-256, entregue em cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`, rotacionado a cada uso; reuso de um token já usado revoga a sessão inteira, exceto numa janela de 10 s (corrida entre abas), e o frontend serializa o refresh entre abas com Web Locks.
+**Consequências:** um XSS não consegue roubar a sessão longa; roubo do refresh é detectado; a chave RSA vem de `JWT_CHAVE_PRIVADA` (em dev, gerada na subida — sessões não sobrevivem a reinício).
+
+## ADR-012 — Tenancy com `@TenantId` + RLS + papel `locgym_app` (aceita, Fase 2)
+**Decisão:** entidades de tenant estendem `EntidadeDeTenant` (`@TenantId`); o gerenciador de transação executa `set_config('app.academia_id', …, true)` no início de cada transação; as tabelas de tenant têm RLS forçado; a aplicação conecta como `locgym_app` (sem `BYPASSRLS`, não dona) e as migrations como dono. Os testes de integração usam a mesma separação.
+**Alternativas descartadas:** só RLS (erros difíceis de diagnosticar, `academia_id` à mão); `academiaId` explícito nos repositórios (fácil de esquecer).
+**Consequências:** esquecer o filtro é impossível na aplicação e inofensivo no banco; operações que atravessam academias precisam de portas explícitas (ADR-013).
+
+## ADR-013 — Função `SECURITY DEFINER` para vínculos (aceita, Fase 2)
+**Decisão:** `vinculos_do_usuario(usuario)` é a única leitura que atravessa academias; executa como dono, devolve só os vínculos do próprio usuário e exclui aluno CANCELADO. É consultada a cada requisição para validar o contexto.
+**Consequências:** remoção de admin e cancelamento de aluno valem na hora, ao custo de uma consulta indexada por requisição.
+
+## ADR-014 — Contexto como par (academia, perfil) em headers (aceita, Fase 2)
+**Decisão:** `X-Academia-Id` + `X-Perfil` em toda rota de tenant, porque a mesma pessoa pode ser ADMIN e ALUNO na mesma academia. O token não carrega vínculos.
+**Consequências:** o frontend persiste o par escolhido; trocar de academia não exige novo login.

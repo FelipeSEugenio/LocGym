@@ -26,7 +26,10 @@ App mobile nativo, gateway de pagamento, nota fiscal, financeiro completo, estoq
 
 ## Estado atual
 
-**Fase 1 — Fundação concluída:** monorepo, backend Spring Boot com health checks, migrations e publicação de eventos (outbox → Kafka), frontend Angular com o esqueleto das áreas admin/aluno, Docker Compose e CI. Os módulos de negócio começam na Fase 2 — veja [08 — Roadmap](08-roadmap.md).
+- **Fase 1 — Fundação ✅:** monorepo, backend Spring Boot com health checks, migrations e publicação de eventos (outbox → Kafka), frontend Angular, Docker Compose e CI.
+- **Fase 2 — Identidade e cadastros ✅:** login seguro (JWT + refresh rotativo), perfis por academia, isolamento entre academias na aplicação e no banco (RLS), auditoria, cadastros de academias, administradores, alunos, professores e planos, painel administrativo e "Meus dados" do aluno.
+
+Próxima: Fase 3 (matrículas e pagamentos) — veja [08 — Roadmap](08-roadmap.md).
 
 ## Documentos
 

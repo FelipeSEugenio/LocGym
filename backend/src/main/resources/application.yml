@@ -64,6 +64,9 @@ logging:
       console: ecs
 
 locgym:
+  jwt:
+    # Chave RSA (PEM PKCS#8). Vazia: gera uma temporária a cada subida (só para desenvolvimento).
+    chave-privada: ${JWT_CHAVE_PRIVADA:}
   outbox:
     relay-habilitado: true
     intervalo-ms: 1000

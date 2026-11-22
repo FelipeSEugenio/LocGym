@@ -21,8 +21,8 @@ Um único deployable dividido em módulos de negócio verificados pelo **Spring 
 | Módulo | Responsabilidade | Fase |
 |---|---|---|
 | `compartilhado` | Infra técnica aberta a todos: eventos/outbox, tratamento de erros | ✅ 1 |
-| `identidade` | Usuários, login, tokens, vínculos | 2 |
-| `academia`, `aluno`, `professor`, `plano` | Cadastros | 2 |
+| `identidade` | Usuários, login, JWT, refresh, vínculos, filtro de contexto | ✅ 2 |
+| `academia`, `aluno`, `professor`, `plano` | Cadastros | ✅ 2 |
 | `matricula`, `pagamento` | Cobrança recorrente, inadimplência, job diário | 3 |
 | `agenda`, `frequencia` | Horários, aulas, check-in | 4 |
 | `relatorio`, `notificacao` | Indicadores; consumo de eventos | 5 |
@@ -43,12 +43,33 @@ Regras verificadas por ArchUnit: `dominio` não depende de framework nem de outr
 
 Transactional outbox → Kafka: detalhes em [07 — Eventos](07-eventos.md).
 
-## Multi-tenancy (planejado — Fase 2)
+## Multi-tenancy (Fase 2)
 
-- Schema único; `academia_id` em toda tabela de tenant.
-- Tenant ativo vem do header `X-Academia-Id`, validado contra os vínculos do JWT (sem vínculo → 403).
-- Duas camadas: filtro Hibernate automático na aplicação **e** Row-Level Security no PostgreSQL (`SET LOCAL app.academia_id` por transação; usuário de banco sem `BYPASSRLS`).
-- Testes de isolamento tentam ler e escrever dados de outra academia em cada endpoint.
+```mermaid
+sequenceDiagram
+    participant N as Navegador
+    participant F as FiltroContextoTenant
+    participant DB as PostgreSQL (locgym_app)
+    participant S as Caso de uso
+    N->>F: Bearer JWT + X-Academia-Id + X-Perfil
+    F->>DB: vinculos_do_usuario(usuario)  (SECURITY DEFINER)
+    alt sem vínculo nesse perfil
+        F-->>N: 403 SEM_VINCULO
+    else academia inativa e escrita
+        F-->>N: 409 ACADEMIA_INATIVA
+    else ok
+        F->>S: TenantContext = (academia, perfil, usuário) + ROLE_<perfil>
+        S->>DB: início da transação: set_config('app.academia_id', academia, true)
+        S->>DB: JPA com @TenantId (academia_id preenchido e filtrado)
+        Note over DB: RLS forçado confere academia_id em toda linha
+    end
+```
+
+- **Duas camadas:** Hibernate `@TenantId` (`EntidadeDeTenant`) e Row-Level Security forçado. Mesmo SQL nativo só enxerga a academia da transação.
+- **Contexto por requisição:** `TenantContext` é definido pelo filtro e sempre limpo no fim; o vínculo é consultado no banco a cada requisição (remoções valem na hora).
+- **Papel `locgym_app`:** a aplicação nunca conecta com um papel que ignore o RLS — nem nos testes.
+- **Tabelas globais** (`usuario`, `academia`, `administrador_academia`, `refresh_token`) ficam sem RLS e são acessadas sempre pela academia do contexto ou pelo próprio usuário.
+- **Auditoria** grava na mesma transação; para operações fora do contexto da academia afetada (criação de academia), há `registrarNaAcademia`.
 
 ## Frontend
 
@@ -57,8 +78,9 @@ Angular 22 (standalone, signals), Angular Material, rotas com carregamento sob d
 | Rota | Conteúdo | Fase |
 |---|---|---|
 | `/` | Página inicial com status do backend | ✅ 1 |
-| `/admin` | Shell do painel (toolbar + menu lateral) | esqueleto ✅ 1, módulos 2+ |
-| `/aluno` | Shell mobile-first do portal | esqueleto ✅ 1, telas 5 |
+| `/login`, `/criar-academia`, `/trocar-senha`, `/selecionar-academia`, `/nova-academia` | Sessão e escolha de academia | ✅ 2 |
+| `/admin/{alunos,professores,planos,administradores,academia}` | Painel por módulos | ✅ 2 |
+| `/aluno/meus-dados` | Portal do aluno (somente leitura) | ✅ 2; demais telas na Fase 5 |
 
 ## Infraestrutura
 

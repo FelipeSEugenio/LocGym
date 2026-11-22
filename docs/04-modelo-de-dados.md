@@ -2,28 +2,48 @@
 
 Banco: **PostgreSQL 17**, migrations versionadas com **Flyway** (`backend/src/main/resources/db/migration`). Identificadores `uuid`; datas em `timestamptz`; regras de data de negócio no fuso `America/Sao_Paulo`.
 
-## Implementado (Fase 1)
+## Papéis de banco
 
-### `outbox_evento` — `V1__outbox_evento.sql`
-
-| Coluna | Tipo | Descrição |
+| Papel | Uso | Características |
 |---|---|---|
-| `id` | uuid PK | Também é o `evento_id` do envelope. |
-| `sequencia` | bigint identity, único | Ordem de gravação; o relay publica nessa ordem. |
-| `tipo` | varchar(100) | Tipo do evento = nome do tópico Kafka. |
-| `academia_id` | uuid, nulo | Tenant do evento; chave da mensagem Kafka. |
-| `versao` | int | Versão do contrato do evento. |
-| `payload` | jsonb | Envelope completo, exatamente como é publicado. |
-| `ocorrido_em` | timestamptz | Momento em que o evento foi gerado. |
-| `publicado_em` | timestamptz, nulo | Nulo enquanto pendente. |
-| `tentativas` | int | Falhas de publicação acumuladas. |
-| `ultimo_erro` | text | Última falha de publicação. |
+| `locgym` (`DB_USER`) | Flyway (migrations) | Dono do schema. |
+| `locgym_app` (`DB_APP_USER`) | Aplicação em execução | Criado pela V2; **não é superusuário, não é dono das tabelas, `NOBYPASSRLS`**; só `SELECT/INSERT/UPDATE/DELETE`. Os testes de integração também rodam com ele. |
 
-Índice parcial `ix_outbox_evento_pendente (sequencia) where publicado_em is null`.
+## Tabelas implementadas
 
-## Planejado (Fases 2–5)
+### Globais (sem RLS — acesso controlado pela aplicação)
 
-Toda tabela de tenant tem `academia_id` (FK, indexado), `criado_em`, `atualizado_em` e, quando aplicável, `status`.
+| Tabela | Migration | Campos principais |
+|---|---|---|
+| `usuario` | V2 | `email` único (sempre minúsculo), `nome`, `senha_hash` (BCrypt), `deve_trocar_senha`. Credencial de login, sem perfil. |
+| `academia` | V2 | `nome`, `cnpj` único (14 dígitos), endereço, `estado` (UF), `cep` (8 dígitos), telefone, e-mail, `status` ATIVA/INATIVA. |
+| `administrador_academia` | V2 | PK (`usuario_id`, `academia_id`) + `nome` (nome informado para esta academia). |
+| `refresh_token` | V2 | `token_hash` único (SHA-256 — o valor bruto nunca é gravado), `familia` (sessão), `expira_em`, `usado_em`, `revogado_em`. |
+| `outbox_evento` | V1 | Eventos pendentes/publicados (ver [07](07-eventos.md)). |
+
+### De tenant (`academia_id` obrigatório + RLS forçado)
+
+| Tabela | Migration | Campos principais e restrições |
+|---|---|---|
+| `aluno` | V3 | `usuario_id`, `nome`, `cpf` (11 dígitos), telefone, `data_nascimento`, endereço, `status` ATIVO/INATIVO/CANCELADO. `UNIQUE (academia_id, cpf)`, `UNIQUE (academia_id, usuario_id)`. |
+| `professor` | V3 | `nome` (obrigatório), e-mail, telefone, nascimento, especialidade, `status` ATIVO/INATIVO. |
+| `plano` | V3 | `nome` (`UNIQUE (academia_id, nome)`), descrição, `valor numeric(10,2) > 0`, `periodicidade` MENSAL/TRIMESTRAL/SEMESTRAL/ANUAL, `status`. Nunca é apagado. |
+| `auditoria` | V3 | `usuario_id`, `acao`, `entidade`, `entidade_id`, `antes`/`depois` (JSONB), `ocorrido_em`. |
+
+Policy em todas as tabelas de tenant (`ENABLE` + `FORCE ROW LEVEL SECURITY`):
+
+```sql
+using      (academia_id = nullif(current_setting('app.academia_id', true), '')::uuid)
+with check (academia_id = nullif(current_setting('app.academia_id', true), '')::uuid)
+```
+
+Sem academia definida na transação, nenhuma linha é visível e nenhum INSERT é aceito.
+
+### Função `vinculos_do_usuario(usuario)` — V4
+
+`SECURITY DEFINER`, executável só por `locgym_app`. Devolve `(academia_id, academia_nome, academia_status, perfil)` unindo `administrador_academia` (ADMIN) e `aluno` (ALUNO, **exceto CANCELADO**). É a única leitura que atravessa academias — usada no login, no seletor de academia e na validação do contexto de cada requisição.
+
+## Diagrama (Fase 2)
 
 ```mermaid
 erDiagram
@@ -33,25 +53,25 @@ erDiagram
     ACADEMIA ||--o{ ALUNO : ""
     ACADEMIA ||--o{ PROFESSOR : ""
     ACADEMIA ||--o{ PLANO : ""
-    ALUNO ||--o{ MATRICULA : ""
-    PLANO ||--o{ MATRICULA : ""
-    MATRICULA ||--o{ MATRICULA_PERIODO : "vigências"
-    MATRICULA ||--o{ PAGAMENTO : "cobranças"
-    PROFESSOR ||--o{ HORARIO : "ministra"
-    HORARIO ||--o{ AULA : "ocorrências"
-    ALUNO ||--o{ CHECKIN : ""
-    AULA |o--o{ CHECKIN : ""
+    ACADEMIA ||--o{ AUDITORIA : ""
+    USUARIO ||--o{ REFRESH_TOKEN : "sessões"
 
     USUARIO {
         uuid id PK
         string email UK
         string senha_hash
+        boolean deve_trocar_senha
     }
     ACADEMIA {
         uuid id PK
         string nome
-        string cnpj
+        string cnpj UK
         string status
+    }
+    ADMINISTRADOR_ACADEMIA {
+        uuid usuario_id PK
+        uuid academia_id PK
+        string nome
     }
     ALUNO {
         uuid id PK
@@ -60,48 +80,35 @@ erDiagram
         string cpf
         string status
     }
-    MATRICULA {
+    PROFESSOR {
         uuid id PK
         uuid academia_id FK
-        uuid aluno_id FK
-        uuid plano_id FK
-        date data_inicio
-        date data_vencimento
+        string nome
+        string status
+    }
+    PLANO {
+        uuid id PK
+        uuid academia_id FK
+        string nome
         decimal valor
+        string periodicidade
         string status
     }
-    PAGAMENTO {
+    AUDITORIA {
         uuid id PK
         uuid academia_id FK
-        uuid matricula_id FK
-        decimal valor
-        date vencimento
-        date data_pagamento
-        string forma
-        string status
+        string acao
+        jsonb antes
+        jsonb depois
     }
-    HORARIO {
+    REFRESH_TOKEN {
         uuid id PK
-        uuid academia_id FK
-        uuid professor_id FK
-        int dia_semana
-        time inicio
-        time fim
-        string tipo_aula
-    }
-    CHECKIN {
-        uuid id PK
-        uuid academia_id FK
-        uuid aluno_id FK
-        uuid aula_id FK
-        timestamptz entrada_em
-        string origem
-        string pontualidade
-        string status
+        uuid usuario_id FK
+        string token_hash UK
+        uuid familia
     }
 ```
 
-Restrições relevantes do design:
-- `aluno`: `UNIQUE (academia_id, cpf)`.
-- `matricula`: no máximo uma não cancelada por `(academia_id, aluno_id)` (índice único parcial).
-- Tabelas de apoio previstas: `refresh_token`, `matricula_suspensao`, `notificacao`, `auditoria`, `configuracao_academia` (antecedência de cobrança, carência, tolerância de pontualidade).
+## Planejado (Fases 3–5)
+
+`matricula`, `matricula_periodo`, `matricula_suspensao`, `pagamento`, `horario`, `aula`, `checkin`, `notificacao`, `configuracao_academia` (antecedência de cobrança, carência, tolerância de pontualidade) — todas de tenant, com `academia_id` + RLS. Matrícula: no máximo uma não cancelada por `(academia_id, aluno_id)`.
