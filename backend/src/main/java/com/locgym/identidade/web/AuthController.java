@@ -96,9 +96,11 @@ class AuthController {
                 .build();
     }
 
+    /** Troca a senha, derruba as outras sessões e devolve uma sessão nova (com novo cookie). */
     @PostMapping("/trocar-senha")
-    SessaoResposta trocarSenha(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody TrocaDeSenhaRequisicao req) {
-        return SessaoResposta.de(autenticacao.trocarSenha(UUID.fromString(jwt.getSubject()),
+    ResponseEntity<SessaoResposta> trocarSenha(@AuthenticationPrincipal Jwt jwt,
+                                               @Valid @RequestBody TrocaDeSenhaRequisicao req) {
+        return comNovaSessao(HttpStatus.OK, autenticacao.trocarSenha(UUID.fromString(jwt.getSubject()),
                 req.senhaAtual(), req.novaSenha()));
     }
 

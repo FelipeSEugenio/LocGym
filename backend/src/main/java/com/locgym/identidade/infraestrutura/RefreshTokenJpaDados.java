@@ -17,4 +17,8 @@ interface RefreshTokenJpaDados extends JpaRepository<RefreshTokenJpa, UUID> {
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update RefreshTokenJpa t set t.revogadoEm = :agora where t.familia = :familia and t.revogadoEm is null")
     int revogarFamilia(UUID familia, Instant agora);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update RefreshTokenJpa t set t.revogadoEm = :agora where t.usuarioId = :usuarioId and t.revogadoEm is null")
+    int revogarDoUsuario(UUID usuarioId, Instant agora);
 }

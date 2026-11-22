@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import {
   catchError,
@@ -10,6 +10,7 @@ import {
   of,
   shareReplay,
   tap,
+  throwError,
 } from 'rxjs';
 import { ContextoService } from '../contexto/contexto.service';
 import { CadastroAdministrador, RespostaSessao, UsuarioSessao, Vinculo } from './modelos';
@@ -55,6 +56,8 @@ export class AuthService {
   /**
    * Renova a sessão pelo cookie. Chamadas simultâneas compartilham a mesma renovação; entre abas, o
    * refresh é serializado com Web Locks (o backend ainda tolera reuso por 10 s).
+   * Emite {@code true} se renovou e {@code false} se a sessão acabou (401). Se o servidor estiver fora
+   * (rede ou 5xx), propaga o erro e mantém a sessão local — o usuário não é deslogado por uma queda breve.
    */
   renovar(): Observable<boolean> {
     if (!this.renovacaoEmAndamento) {
@@ -64,9 +67,12 @@ export class AuthService {
             this.aplicar(r);
             return true;
           }),
-          catchError(() => {
-            this.limparLocal();
-            return of(false);
+          catchError((erro: unknown) => {
+            if (erro instanceof HttpErrorResponse && erro.status === 401) {
+              this.limparLocal();
+              return of(false);
+            }
+            return throwError(() => erro);
           }),
         );
       const travas = typeof navigator !== 'undefined' ? navigator.locks : undefined;
@@ -83,7 +89,11 @@ export class AuthService {
 
   /** Tenta retomar a sessão ao carregar a aplicação; sem sessão, segue deslogado. */
   async iniciar(): Promise<void> {
-    await firstValueFrom(this.renovar());
+    try {
+      await firstValueFrom(this.renovar());
+    } catch {
+      // servidor indisponível na carga: segue deslogado; a próxima navegação tenta de novo
+    }
   }
 
   atualizarVinculos(): Observable<Vinculo[]> {

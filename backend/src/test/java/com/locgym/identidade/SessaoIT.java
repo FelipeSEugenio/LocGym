@@ -168,6 +168,23 @@ class SessaoIT {
     }
 
     @Test
+    void trocaDeSenhaDerrubaOutrasSessoes() {
+        String email = novoAdmin();
+        String sessaoDeOutraPessoa = loginEObterCookie(email);   // ex.: quem conhecia a senha inicial
+        var minhaSessao = http.post("/api/v1/auth/login", Map.of("email", email, "senha", SENHA));
+
+        var troca = http.comToken(minhaSessao.texto("accessToken"))
+                .comHeader("Cookie", "locgym_refresh=" + valorDoCookie(minhaSessao.headers()))
+                .post("/api/v1/auth/trocar-senha", Map.of("senhaAtual", SENHA, "novaSenha", "nova-senha-456"));
+
+        assertThat(troca.status()).isEqualTo(200);
+        assertThat(comCookie(sessaoDeOutraPessoa).post("/api/v1/auth/refresh", Map.of()).status())
+                .as("sessão antiga revogada").isEqualTo(401);
+        assertThat(comCookie(valorDoCookie(troca.headers())).post("/api/v1/auth/refresh", Map.of()).status())
+                .as("quem trocou recebe uma sessão nova").isEqualTo(200);
+    }
+
+    @Test
     void trocaComSenhaAtualErrada401() {
         var login = http.post("/api/v1/auth/login", Map.of("email", novoAdmin(), "senha", SENHA));
 

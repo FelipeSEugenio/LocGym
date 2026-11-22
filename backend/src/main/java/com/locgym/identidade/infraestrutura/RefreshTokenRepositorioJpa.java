@@ -32,4 +32,9 @@ class RefreshTokenRepositorioJpa implements RefreshTokenRepositorio {
     public void revogarFamilia(UUID familia, Instant agora) {
         dados.revogarFamilia(familia, agora);
     }
+
+    @Override
+    public void revogarDoUsuario(UUID usuarioId, Instant agora) {
+        dados.revogarDoUsuario(usuarioId, agora);
+    }
 }

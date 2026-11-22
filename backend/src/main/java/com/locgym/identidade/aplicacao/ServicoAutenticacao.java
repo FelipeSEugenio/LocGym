@@ -20,13 +20,15 @@ public class ServicoAutenticacao {
     private final VinculosRepositorio vinculos;
     private final CodificadorDeSenha codificador;
     private final EmissorDeTokens emissor;
+    private final ServicoSessao sessoes;
 
     public ServicoAutenticacao(UsuarioRepositorio usuarios, VinculosRepositorio vinculos,
-                               CodificadorDeSenha codificador, EmissorDeTokens emissor) {
+                               CodificadorDeSenha codificador, EmissorDeTokens emissor, ServicoSessao sessoes) {
         this.usuarios = usuarios;
         this.vinculos = vinculos;
         this.codificador = codificador;
         this.emissor = emissor;
+        this.sessoes = sessoes;
     }
 
     /** Mesma resposta (e tempo semelhante) para e-mail inexistente e senha errada. */
@@ -45,7 +47,10 @@ public class ServicoAutenticacao {
         return sessaoPara(usuario.get());
     }
 
-    /** Troca a senha (inclusive a inicial obrigatória) e devolve um access token atualizado. */
+    /**
+     * Troca a senha (inclusive a inicial obrigatória), derruba todas as sessões existentes — quem conhecia
+     * a senha antiga perde o acesso — e devolve um access token atualizado. O chamador inicia a sessão nova.
+     */
     @Transactional
     public Sessao trocarSenha(UUID usuarioId, String senhaAtual, String novaSenha) {
         Usuario usuario = usuarios.porId(usuarioId)
@@ -55,6 +60,7 @@ public class ServicoAutenticacao {
         }
         usuario.definirSenha(codificador.codificar(novaSenha));
         usuarios.salvar(usuario);
+        sessoes.revogarTodas(usuarioId);
         return sessaoPara(usuario);
     }
 

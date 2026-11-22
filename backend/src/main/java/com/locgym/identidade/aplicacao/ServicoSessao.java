@@ -64,6 +64,12 @@ public class ServicoSessao {
         }
     }
 
+    /** Derruba todas as sessões do usuário (ex.: troca de senha — quem conhecia a senha antiga perde o acesso). */
+    @Transactional
+    public void revogarTodas(UUID usuarioId) {
+        tokens.revogarDoUsuario(usuarioId, clock.instant());
+    }
+
     @Transactional
     public void encerrar(String valor) {
         if (valor == null || valor.isBlank()) {

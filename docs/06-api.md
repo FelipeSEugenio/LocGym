@@ -35,7 +35,7 @@
 | POST | `/api/v1/auth/login` | Público. `{email, senha}` → sessão `{accessToken, expiraEm, usuario{id, nome, email, deveTrocarSenha}, vinculos[{academiaId, academiaNome, academiaStatus, perfil}]}` + cookie. Credenciais inválidas → 401 genérico. |
 | POST | `/api/v1/auth/refresh` | Público (usa o cookie). Rotaciona o refresh e devolve nova sessão. Reuso de token já usado: tolerado por 10 s; depois, revoga a sessão inteira (401). |
 | POST | `/api/v1/auth/logout` | Revoga a sessão e apaga o cookie (204). |
-| POST | `/api/v1/auth/trocar-senha` | `{senhaAtual, novaSenha}` → nova sessão com `deveTrocarSenha: false`. |
+| POST | `/api/v1/auth/trocar-senha` | `{senhaAtual, novaSenha}` → nova sessão (e novo cookie) com `deveTrocarSenha: false`. **Todas as outras sessões do usuário são revogadas** — quem conhecia a senha antiga, inclusive a inicial, perde o acesso. |
 | GET | `/api/v1/eu/vinculos` | "Minhas academias": vínculos atuais do usuário. |
 | POST | `/api/v1/academias` | Qualquer usuário autenticado cria uma academia e vira administrador dela (201). |
 

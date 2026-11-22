@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { catchError, of, switchMap, throwError } from 'rxjs';
 import { ContextoService } from '../contexto/contexto.service';
 import { AuthService } from './auth.service';
 
@@ -17,6 +17,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const contexto = inject(ContextoService);
   const router = inject(Router);
   const rotaDeAuth = req.url.startsWith('/api/v1/auth/');
+  // Rotas que não fazem sentido renovar e repetir (inclusive o próprio refresh). Trocar senha renova.
+  const semRenovacao = /^\/api\/v1\/auth\/(login|refresh|logout|cadastro-administrador)$/.test(req.url);
 
   const preparar = (r: HttpRequest<unknown>) => {
     const headers: Record<string, string> = {};
@@ -37,14 +39,17 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (!(erro instanceof HttpErrorResponse)) {
         return throwError(() => erro);
       }
-      if (erro.status === 401 && !rotaDeAuth) {
+      if (erro.status === 401 && !semRenovacao) {
         return auth.renovar().pipe(
+          catchError(() => of(null)), // servidor fora: devolve o erro original sem deslogar
           switchMap((renovou) => {
-            if (renovou) {
+            if (renovou === true) {
               return next(preparar(req));
             }
-            auth.limparLocal();
-            void router.navigate(['/login']);
+            if (renovou === false) {
+              auth.limparLocal();
+              void router.navigate(['/login']);
+            }
             return throwError(() => erro);
           }),
         );

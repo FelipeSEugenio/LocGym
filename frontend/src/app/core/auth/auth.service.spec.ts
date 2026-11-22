@@ -82,4 +82,24 @@ describe('AuthService', () => {
     expect(auth.usuario()?.deveTrocarSenha).toBe(false);
     expect(auth.accessToken()).toBe('novo');
   });
+
+  it('renovarComServidorForaMantemSessao', async () => {
+    const login = firstValueFrom(auth.login('ana@x.com', 'x'));
+    http.expectOne('/api/v1/auth/login').flush(sessao());
+    await login;
+
+    const renovacao = firstValueFrom(auth.renovar());
+    http.expectOne('/api/v1/auth/refresh').flush({}, { status: 503, statusText: 'Service Unavailable' });
+
+    await expect(renovacao).rejects.toBeTruthy();
+    expect(auth.autenticado()).toBe(true);
+    expect(TestBed.inject(ContextoService).atual()).toEqual({ academiaId: 'a1', perfil: 'ADMIN' });
+  });
+
+  it('iniciarComServidorForaNaoQuebra', async () => {
+    const inicio = auth.iniciar();
+    http.expectOne('/api/v1/auth/refresh').error(new ProgressEvent('error'));
+    await inicio;
+    expect(auth.autenticado()).toBe(false);
+  });
 });

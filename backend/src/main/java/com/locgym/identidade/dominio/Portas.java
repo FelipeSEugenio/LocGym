@@ -24,6 +24,8 @@ public final class Portas {
         Optional<RefreshToken> porHashComBloqueio(String tokenHash);
         void salvar(RefreshToken token);
         void revogarFamilia(UUID familia, java.time.Instant agora);
+
+        void revogarDoUsuario(UUID usuarioId, java.time.Instant agora);
     }
 
     public interface CodificadorDeSenha {

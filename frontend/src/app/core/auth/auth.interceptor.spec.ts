@@ -101,4 +101,25 @@ describe('authInterceptor', () => {
     expect(req.request.headers.has('X-Academia-Id')).toBe(false);
     req.flush([]);
   });
+
+  it('trocaDeSenhaComTokenExpiradoRenovaERepete', async () => {
+    const resposta = firstValueFrom(cliente.post('/api/v1/auth/trocar-senha', { senhaAtual: 'a', novaSenha: 'b' }));
+    http.expectOne('/api/v1/auth/trocar-senha').flush({}, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne('/api/v1/auth/refresh').flush(sessao({ accessToken: 'token-2' }));
+    const repetida = http.expectOne('/api/v1/auth/trocar-senha');
+    expect(repetida.request.headers.get('Authorization')).toBe('Bearer token-2');
+    repetida.flush(sessao({ accessToken: 'token-3' }));
+    await resposta;
+  });
+
+  it('servidorForaNoRefreshNaoDesloga', async () => {
+    const resposta = firstValueFrom(cliente.get('/api/v1/alunos'));
+    http.expectOne('/api/v1/alunos').flush({}, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne('/api/v1/auth/refresh').flush({}, { status: 502, statusText: 'Bad Gateway' });
+
+    await expect(resposta).rejects.toBeTruthy();
+    expect(auth.autenticado()).toBe(true);
+    expect(TestBed.inject(ContextoService).atual()).toEqual({ academiaId: 'a1', perfil: 'ADMIN' });
+    expect(navegar).not.toHaveBeenCalledWith(['/login']);
+  });
 });
