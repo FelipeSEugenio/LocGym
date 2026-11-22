@@ -8,7 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public final class DadosDeTeste {
 
     /** Hash BCrypt de "senha-forte-123". */
-    public static final String HASH_SENHA_PADRAO = "$2a$10$Gm4mHq0Z4Sx8vH4v0Jq4pO4rL6cS3n3o9mWm0w9Dk8b5u3h1y0ZQe";
+    public static final String HASH_SENHA_PADRAO = "$2a$10$eDm8HB8gpnIm9YC0wKPIredNbQVSo6nh5a2IEoLdDoAWxK.6pBjx6";
 
     private DadosDeTeste() {}
 
