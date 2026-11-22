@@ -25,7 +25,8 @@ import tools.jackson.databind.json.JsonMapper;
 class SegurancaConfig {
 
     @Bean
-    SecurityFilterChain cadeiaDeSeguranca(HttpSecurity http, JsonMapper json) throws Exception {
+    SecurityFilterChain cadeiaDeSeguranca(HttpSecurity http, JsonMapper json,
+                                         com.locgym.identidade.dominio.Portas.VinculosRepositorio vinculos) throws Exception {
         return http
                 .csrf(c -> c.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -35,9 +36,15 @@ class SegurancaConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info",
                                 "/actuator/prometheus", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
                                 "/error").permitAll()
+                        .requestMatchers("/api/v1/auth/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/eu/vinculos").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/academias").authenticated()
+                        .requestMatchers("/api/v1/eu/**").hasRole("ALUNO")
+                        .requestMatchers("/api/v1/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))
                 .addFilterAfter(new FiltroTrocaDeSenha(json), BearerTokenAuthenticationFilter.class)
+                .addFilterAfter(new FiltroContextoTenant(vinculos, json), FiltroTrocaDeSenha.class)
                 .build();
     }
 
