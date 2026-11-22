@@ -1,10 +1,17 @@
 spring:
   application:
     name: locgym
+  # A aplicação conecta como locgym_app (sem BYPASSRLS); as migrations rodam como dono do schema.
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/locgym}
-    username: ${DB_USER:locgym}
+    username: ${DB_APP_USER:locgym_app}
+    password: ${DB_APP_PASSWORD:locgym_app}
+  flyway:
+    user: ${DB_USER:locgym}
     password: ${DB_PASSWORD:locgym}
+    placeholders:
+      app_usuario: ${DB_APP_USER:locgym_app}
+      app_senha: ${DB_APP_PASSWORD:locgym_app}
   jpa:
     open-in-view: false
     hibernate:
