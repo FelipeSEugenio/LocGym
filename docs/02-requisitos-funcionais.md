@@ -1,13 +1,24 @@
 # 02 — Requisitos funcionais
 
-> Status: **planejado** (implementação a partir da Fase 2). Regras conforme o [design aprovado](planejamento/design.md).
+> Status: **RF01–RF05 implementados na Fase 2** ([design da Fase 2](planejamento/fase-2-design.md)); RF06 em diante planejados. Regras conforme o [design aprovado](planejamento/design.md).
+
+### Acesso conforme status (Fase 2)
+
+| Situação | Aparece no seletor e faz login? | O que pode fazer |
+|---|---|---|
+| Aluno ATIVO | Sim | Tudo o que o perfil permite |
+| Aluno INATIVO | Sim | Só consultar os próprios dados |
+| Aluno CANCELADO | Não — perde o acesso àquela academia | Nada; reativado, volta a ter acesso |
+| Academia INATIVA | Sim, para admins e alunos | Somente leitura (a única escrita é reativar) |
 
 ## RF01 — Identidade e acesso
 - Login por e-mail e senha; o e-mail é a credencial, global no sistema.
 - Perfis derivados dos vínculos: **ADMIN** numa academia (`administrador_academia`) e/ou **ALUNO** numa academia (registro `aluno`). A mesma pessoa pode ter ambos.
 - Quem tem mais de um vínculo escolhe a academia/perfil ativo após o login.
 - Cadastro público apenas para administrador (cria conta + primeira academia).
-- Todos os admins de uma academia têm o mesmo poder; podem convidar outros admins (senha inicial com troca obrigatória), remover vínculos de admin (nunca o último) e criar novas academias.
+- Todos os admins de uma academia têm o mesmo poder; podem convidar outros admins (senha inicial com troca obrigatória), remover vínculos de admin (nunca o último; pode sair se não for o último) e criar novas academias. O nome exibido do admin é o informado no convite.
+- Qualquer usuário autenticado (inclusive quem só é aluno) pode criar uma academia.
+- O contexto ativo é o par (academia, perfil): a mesma pessoa pode ser admin e aluno na mesma academia.
 
 ## RF02 — Academias
 - Nome, CNPJ, endereço, cidade, estado, CEP, telefone, e-mail, status (ATIVA/INATIVA).

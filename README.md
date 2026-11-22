@@ -5,15 +5,15 @@
 
 Sistema web **multi-tenant** de gestão para academias de Jiu-Jitsu: alunos, planos, matrículas com cobrança recorrente, inadimplência, horários, check-in por QR Code e relatórios — cada academia com seus dados totalmente isolados.
 
-> **Estado:** Fase 1 (Fundação) concluída. Os módulos de negócio começam na Fase 2 — veja o [roadmap](docs/08-roadmap.md).
+> **Estado:** Fases 1 (Fundação) e 2 (Identidade e cadastros) concluídas — login seguro, isolamento entre academias na aplicação e no banco (RLS), auditoria e cadastros de academias, administradores, alunos, professores e planos. Próxima: matrículas e pagamentos — veja o [roadmap](docs/08-roadmap.md).
 
 ## Stack
 
 | Camada | Tecnologia |
 |---|---|
 | Frontend | Angular 22 (standalone + signals), Angular Material, Vitest, ESLint |
-| Backend | Java 21, Spring Boot 4.2, Spring Modulith, Spring Data JPA, Flyway, springdoc-openapi |
-| Dados | PostgreSQL 17 |
+| Backend | Java 21, Spring Boot 4.2, Spring Security (JWT RS256), Spring Modulith, Spring Data JPA/Hibernate (`@TenantId`), Flyway, springdoc-openapi |
+| Dados | PostgreSQL 17 com Row-Level Security |
 | Mensageria | Apache Kafka 4.3 (KRaft), transactional outbox |
 | Testes | JUnit 5, Testcontainers, ArchUnit |
 | Infra | Docker, Docker Compose, GitHub Actions |
@@ -46,6 +46,18 @@ docker compose up -d --build --wait
 | Health check | http://localhost:8080/actuator/health |
 | Métricas | http://localhost:8080/actuator/prometheus |
 | Kafka UI (opcional) | `docker compose --profile tools up -d` → http://localhost:8081 |
+
+### Primeiro acesso
+
+1. Abra http://localhost:4200 e clique em **Criar minha academia** — você cria sua conta e a primeira academia e já entra no painel.
+2. No painel, cadastre planos, professores e alunos. Cada aluno recebe uma senha inicial e troca no primeiro acesso.
+3. Para ver o portal do aluno, saia e entre com o e-mail e a senha inicial do aluno.
+
+| Variável (`.env`) | Para quê |
+|---|---|
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` | Dono do schema — usado pelas migrations. |
+| `DB_APP_USER` / `DB_APP_PASSWORD` | Papel da aplicação (`locgym_app`), sem permissão para ignorar o RLS. |
+| `JWT_CHAVE_PRIVADA` (opcional) | Chave RSA (PEM PKCS#8) que assina os tokens. Sem ela, uma chave temporária é gerada a cada subida e as sessões não sobrevivem a reinícios. |
 
 Parar: `docker compose down` (os dados ficam nos volumes; `docker compose down -v` apaga tudo).
 

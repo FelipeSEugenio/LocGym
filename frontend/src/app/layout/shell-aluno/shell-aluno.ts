@@ -1,19 +1,22 @@
 import { Component } from '@angular/core';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterOutlet } from '@angular/router';
+import { SeletorContexto } from '../seletor-contexto/seletor-contexto';
 
-/** Layout mobile-first do portal do aluno. As telas do portal entram na Fase 5. */
+/** Layout mobile-first do portal do aluno. */
 @Component({
   selector: 'app-shell-aluno',
-  imports: [MatToolbarModule, RouterOutlet],
+  imports: [MatToolbarModule, RouterOutlet, SeletorContexto],
   template: `
-    <mat-toolbar color="primary">LocGym — Aluno</mat-toolbar>
-    <main class="conteudo">
-      <router-outlet />
-      <p>O portal do aluno será construído nas próximas fases.</p>
-    </main>
+    <mat-toolbar color="primary">
+      <span>LocGym</span>
+      <span class="espaco"></span>
+      <app-seletor-contexto />
+    </mat-toolbar>
+    <main class="conteudo"><router-outlet /></main>
   `,
   styles: `
+    .espaco { flex: 1; }
     .conteudo { padding: 16px; max-width: 720px; margin: 0 auto; }
   `,
 })

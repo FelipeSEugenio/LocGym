@@ -2,16 +2,17 @@
 
 | Requisito | Como é atendido | Status |
 |---|---|---|
-| **Isolamento por academia** | Coluna `academia_id` em todas as tabelas de tenant, filtro automático na aplicação e Row-Level Security no PostgreSQL; testes que tentam acessar dados de outra academia. | Fase 2 |
-| **Segurança** | Senhas com BCrypt; JWT de acesso (15 min) + refresh token opaco rotacionado (7 dias); permissões por perfil; erros sem detalhes internos (Problem Details); segredos só por variáveis de ambiente; containers sem root. | Parcial (Fase 1: erros, segredos, containers) |
-| **Controle de acesso por perfil** | Perfis ADMIN/ALUNO derivados dos vínculos com cada academia. | Fase 2 |
-| **Auditoria** | Tabela `auditoria` (antes/depois em JSONB) para pagamentos, cancelamento/suspensão, correções de frequência e vínculos. | Fase 2+ |
-| **Disponibilidade** | Health checks: **liveness** verifica só o processo; **readiness** verifica o banco, **não o Kafka** — a indisponibilidade do Kafka não tira o backend do ar, pois o outbox retém os eventos. | ✅ Fase 1 |
-| **Confiabilidade de eventos** | Transactional outbox: evento só sai se a transação confirmar; retry automático; ordem preservada; entrega at-least-once. | ✅ Fase 1 |
-| **Observabilidade** | Logs estruturados em JSON (ECS); métricas Micrometer/Prometheus em `/actuator/prometheus`; health em `/actuator/health`. | ✅ Fase 1 |
-| **Escalabilidade** | Backend stateless; relay do outbox seguro com várias instâncias (advisory lock); Kafka particionado por academia. | ✅ base na Fase 1 |
-| **Manutenibilidade** | Monolito modular (Spring Modulith) com Clean Architecture por módulo; regras verificadas por testes de arquitetura. | ✅ Fase 1 |
-| **Testabilidade** | JUnit 5, Testcontainers (Postgres e Kafka reais), ArchUnit; Vitest no frontend; CI em todo push/PR. | ✅ Fase 1 |
-| **Performance** | Índices por `academia_id`; paginação nas listagens; índice parcial para pendências do outbox. | Contínuo |
-| **Backup e recuperação** | Volume nomeado do Postgres; `pg_dump` documentado para o ambiente local; estratégia gerenciada junto com o deploy (fase posterior). | Fase 6 |
-| **Documentação e versionamento** | Markdown em `docs/`, ADRs em [09](09-decisoes-tecnicas.md), Conventional Commits, OpenAPI em `/swagger-ui.html`. | ✅ Fase 1 |
+| **Isolamento por academia** | Duas camadas: Hibernate `@TenantId` grava e filtra `academia_id` em toda entidade de tenant, e **Row-Level Security forçado** no PostgreSQL com a academia definida por transação (`set_config('app.academia_id', …, true)`). A aplicação conecta como `locgym_app` (não é superusuário, não é dona das tabelas, `NOBYPASSRLS`). Testes provam que SQL nativo sem academia não vê nada e que cada endpoint devolve 404/403 para dados de outra academia. | ✅ Fase 2 |
+| **Segurança** | Senhas com BCrypt (mín. 8 caracteres); login com resposta e tempo iguais para e-mail inexistente e senha errada; JWT RS256 de 15 min só em memória no navegador; refresh token de 7 dias em cookie `HttpOnly; Secure; SameSite=Strict`, guardado como hash, rotacionado a cada uso, com detecção de roubo por reuso (revoga a sessão); troca de senha obrigatória no primeiro acesso, que derruba todas as outras sessões (quem conhecia a senha inicial perde o acesso); uma queda breve do servidor não desloga o usuário; erros sem detalhes internos; containers sem root; segredos por variável de ambiente. | ✅ Fase 2 |
+| **Não revelar dados de outras academias** | Convites e cadastros de alunos respondem igual para e-mail novo ou existente; o nome mostrado do administrador é o informado no convite; recurso de outra academia responde 404, como inexistente. | ✅ Fase 2 |
+| **Controle de acesso por perfil** | Perfis ADMIN/ALUNO derivados dos vínculos de cada academia; o contexto (academia + perfil) vem em headers e é conferido **no banco a cada requisição** — remover um admin ou cancelar um aluno vale imediatamente. | ✅ Fase 2 |
+| **Auditoria** | Tabela `auditoria` (com RLS) grava usuário, ação, entidade e antes/depois em JSONB, na mesma transação, para: criação e status de academia, entrada e saída de administradores, status de aluno, professor e plano. Nunca grava senhas. | ✅ Fase 2 |
+| **Disponibilidade** | Liveness verifica só o processo; readiness verifica o banco, **não o Kafka**; login e cadastros funcionam com o Kafka parado; o outbox retém eventos. | ✅ |
+| **Confiabilidade de eventos** | Transactional outbox: atomicidade, retry, ordem preservada, at-least-once, timeouts curtos com o Kafka fora. | ✅ Fase 1 |
+| **Observabilidade** | Logs estruturados (ECS); métricas Prometheus; health checks. | ✅ Fase 1 |
+| **Escalabilidade** | Backend stateless (JWT); refresh com bloqueio de linha (renovações concorrentes serializadas); relay do outbox com advisory lock. | ✅ |
+| **Manutenibilidade** | Monolito modular (Spring Modulith) com Clean Architecture por módulo — domínio puro, portas e adaptadores; regras verificadas por testes de arquitetura. | ✅ |
+| **Testabilidade** | 124 testes no backend (JUnit 5, Testcontainers com Postgres e Kafka reais, rodando como `locgym_app`, ArchUnit) e 53 no frontend (Vitest); CI em todo push/PR. | ✅ |
+| **Performance** | Índices por `academia_id` e para buscas por nome; paginação nas listagens. | Contínuo |
+| **Backup e recuperação** | Volume nomeado do Postgres; estratégia gerenciada junto com o deploy. | Fase 6 |
+| **Documentação e versionamento** | `docs/`, ADRs em [09](09-decisoes-tecnicas.md), Conventional Commits, OpenAPI. | ✅ |

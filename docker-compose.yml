@@ -49,6 +49,9 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-locgym}
       DB_USER: ${POSTGRES_USER:-locgym}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-locgym}
+      DB_APP_USER: ${DB_APP_USER:-locgym_app}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:-locgym_app}
+      JWT_CHAVE_PRIVADA: ${JWT_CHAVE_PRIVADA:-}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_PROFILES_ACTIVE: dev
     ports:

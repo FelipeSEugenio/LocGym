@@ -1,5 +1,10 @@
 package com.locgym.compartilhado.web;
 
+import com.locgym.compartilhado.erros.AcessoNegadoException;
+import com.locgym.compartilhado.erros.NaoAutorizadoException;
+import com.locgym.compartilhado.erros.NaoEncontradoException;
+import com.locgym.compartilhado.erros.RegraVioladaException;
+import com.locgym.compartilhado.erros.ValorInvalidoException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +40,45 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
         problema.setTitle("Dados inválidos");
         problema.setProperty("erros", erros);
         return handleExceptionInternal(ex, problema, headers, status, request);
+    }
+
+    @ExceptionHandler(RegraVioladaException.class)
+    public ProblemDetail regraViolada(RegraVioladaException ex) {
+        return comCodigo(HttpStatus.CONFLICT, "Operação não permitida", ex.getMessage(), ex.codigo());
+    }
+
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ProblemDetail acessoNegado(AcessoNegadoException ex) {
+        return comCodigo(HttpStatus.FORBIDDEN, "Acesso negado", ex.getMessage(), ex.codigo());
+    }
+
+    @ExceptionHandler(NaoEncontradoException.class)
+    public ProblemDetail naoEncontrado(NaoEncontradoException ex) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problema.setTitle("Não encontrado");
+        return problema;
+    }
+
+    @ExceptionHandler(NaoAutorizadoException.class)
+    public ProblemDetail naoAutorizado(NaoAutorizadoException ex) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problema.setTitle("Não autorizado");
+        return problema;
+    }
+
+    @ExceptionHandler(ValorInvalidoException.class)
+    public ProblemDetail valorInvalido(ValorInvalidoException ex) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Requisição inválida");
+        problema.setTitle("Dados inválidos");
+        problema.setProperty("erros", List.of(new ErroDeCampo(ex.campo(), ex.getMessage())));
+        return problema;
+    }
+
+    private static ProblemDetail comCodigo(HttpStatus status, String titulo, String detalhe, String codigo) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(status, detalhe);
+        problema.setTitle(titulo);
+        problema.setProperty("codigo", codigo);
+        return problema;
     }
 
     @ExceptionHandler(Exception.class)

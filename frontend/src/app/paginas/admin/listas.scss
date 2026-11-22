@@ -1,0 +1,35 @@
+.topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.busca {
+  width: min(480px, 100%);
+}
+
+table {
+  width: 100%;
+}
+
+.acoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.formulario {
+  max-width: 760px;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0 16px;
+}
+
+.erro {
+  color: #b3261e;
+}
