@@ -19,6 +19,13 @@ public final class Portas {
         List<Vinculo> doUsuario(UUID usuarioId);
     }
 
+    public interface RefreshTokenRepositorio {
+        /** Busca e bloqueia a linha até o fim da transação (renovações concorrentes são serializadas). */
+        Optional<RefreshToken> porHashComBloqueio(String tokenHash);
+        void salvar(RefreshToken token);
+        void revogarFamilia(UUID familia, java.time.Instant agora);
+    }
+
     public interface CodificadorDeSenha {
         String codificar(String senha);
 

@@ -45,6 +45,19 @@ public class ServicoAutenticacao {
         return sessaoPara(usuario.get());
     }
 
+    /** Troca a senha (inclusive a inicial obrigatória) e devolve um access token atualizado. */
+    @Transactional
+    public Sessao trocarSenha(UUID usuarioId, String senhaAtual, String novaSenha) {
+        Usuario usuario = usuarios.porId(usuarioId)
+                .orElseThrow(() -> new NaoAutorizadoException("Sessão inválida"));
+        if (!codificador.confere(senhaAtual, usuario.senhaHash())) {
+            throw new NaoAutorizadoException("Senha atual incorreta");
+        }
+        usuario.definirSenha(codificador.codificar(novaSenha));
+        usuarios.salvar(usuario);
+        return sessaoPara(usuario);
+    }
+
     @Transactional(readOnly = true)
     public Sessao sessaoPara(UUID usuarioId) {
         return sessaoPara(usuarios.porId(usuarioId)

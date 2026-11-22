@@ -13,7 +13,9 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * API stateless autenticada por Bearer JWT (RS256). CSRF desligado: não há sessão por cookie;
@@ -23,7 +25,7 @@ import org.springframework.security.web.SecurityFilterChain;
 class SegurancaConfig {
 
     @Bean
-    SecurityFilterChain cadeiaDeSeguranca(HttpSecurity http) throws Exception {
+    SecurityFilterChain cadeiaDeSeguranca(HttpSecurity http, JsonMapper json) throws Exception {
         return http
                 .csrf(c -> c.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -35,6 +37,7 @@ class SegurancaConfig {
                                 "/error").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))
+                .addFilterAfter(new FiltroTrocaDeSenha(json), BearerTokenAuthenticationFilter.class)
                 .build();
     }
 
