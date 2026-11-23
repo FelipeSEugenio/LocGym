@@ -58,4 +58,26 @@ public final class DadosDeTeste {
                 """, id, academia, nome);
         return id;
     }
+
+    /** Matrícula ATIVA mensal de R$ 150,00 iniciada em {@code inicio} (vigente por um mês). */
+    public static UUID matricula(JdbcTemplate su, UUID academia, UUID aluno, UUID plano, java.time.LocalDate inicio) {
+        UUID id = UUID.randomUUID();
+        su.update("""
+                insert into matricula (id, academia_id, aluno_id, plano_id, valor, periodicidade, data_inicio,
+                                       data_base, vigente_ate, status)
+                values (?, ?, ?, ?, 150.00, 'MENSAL', ?, ?, ?, 'ATIVA')
+                """, id, academia, aluno, plano, inicio, inicio, inicio.plusMonths(1));
+        return id;
+    }
+
+    /** Cobrança PENDENTE do período mensal que começa em {@code inicio}. */
+    public static UUID cobranca(JdbcTemplate su, UUID academia, UUID matricula, UUID aluno, java.time.LocalDate inicio) {
+        UUID id = UUID.randomUUID();
+        su.update("""
+                insert into pagamento (id, academia_id, matricula_id, aluno_id, valor, vencimento, periodo_inicio,
+                                       periodo_fim, status)
+                values (?, ?, ?, ?, 150.00, ?, ?, ?, 'PENDENTE')
+                """, id, academia, matricula, aluno, inicio, inicio, inicio.plusMonths(1));
+        return id;
+    }
 }

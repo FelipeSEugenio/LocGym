@@ -95,4 +95,79 @@ class RlsIT {
     void outboxContinuaSemRls() {
         assertThat(jdbc.queryForObject("select count(*) >= 0 from outbox_evento", Boolean.class)).isTrue();
     }
+
+    private void dadosFinanceiros(UUID academia) {
+        UUID usuario = DadosDeTeste.usuario(su.jdbc(), "rls-" + UUID.randomUUID() + "@teste.com");
+        UUID aluno = DadosDeTeste.aluno(su.jdbc(), usuario, academia, "ATIVO");
+        UUID plano = DadosDeTeste.plano(su.jdbc(), academia, "Plano " + UUID.randomUUID());
+        var inicio = java.time.LocalDate.of(2026, 11, 1);
+        UUID matricula = DadosDeTeste.matricula(su.jdbc(), academia, aluno, plano, inicio);
+        UUID cobranca = DadosDeTeste.cobranca(su.jdbc(), academia, matricula, aluno, inicio);
+        su.jdbc().update("""
+                insert into matricula_periodo (id, academia_id, matricula_id, inicio, fim, cobranca_id)
+                values (?, ?, ?, ?, ?, ?)
+                """, UUID.randomUUID(), academia, matricula, inicio, inicio.plusMonths(1), cobranca);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"matricula", "matricula_periodo", "pagamento"})
+    void tabelasDaFase3Isoladas(String tabela) {
+        dadosFinanceiros(academiaA);
+        dadosFinanceiros(academiaB);
+
+        Integer semAcademia = tx.execute(s -> jdbc.queryForObject("select count(*) from " + tabela, Integer.class));
+        var academias = comAcademia(academiaA,
+                () -> jdbc.queryForList("select distinct academia_id from " + tabela, UUID.class));
+
+        assertThat(semAcademia).isZero();
+        assertThat(academias).containsExactly(academiaA);
+    }
+
+    @Test
+    void naoInsereMatriculaEmOutraAcademia() {
+        UUID usuario = DadosDeTeste.usuario(su.jdbc(), "rls-" + UUID.randomUUID() + "@teste.com");
+        UUID aluno = DadosDeTeste.aluno(su.jdbc(), usuario, academiaB, "ATIVO");
+        UUID plano = DadosDeTeste.plano(su.jdbc(), academiaB, "Plano invasor");
+
+        assertThatThrownBy(() -> comAcademia(academiaA, () -> jdbc.update("""
+                insert into matricula (id, academia_id, aluno_id, plano_id, valor, periodicidade, data_inicio,
+                                       data_base, vigente_ate, status)
+                values (?, ?, ?, ?, 10, 'MENSAL', current_date, current_date, current_date, 'PENDENTE')
+                """, UUID.randomUUID(), academiaB, aluno, plano)))
+                .isInstanceOf(DataAccessException.class);
+    }
+
+    @Test
+    void umaMatriculaNaoCanceladaPorAluno() {
+        UUID usuario = DadosDeTeste.usuario(su.jdbc(), "rls-" + UUID.randomUUID() + "@teste.com");
+        UUID aluno = DadosDeTeste.aluno(su.jdbc(), usuario, academiaA, "ATIVO");
+        UUID plano = DadosDeTeste.plano(su.jdbc(), academiaA, "Plano unico");
+        DadosDeTeste.matricula(su.jdbc(), academiaA, aluno, plano, java.time.LocalDate.of(2026, 11, 1));
+
+        assertThatThrownBy(() -> DadosDeTeste.matricula(su.jdbc(), academiaA, aluno, plano,
+                java.time.LocalDate.of(2026, 11, 2))).isInstanceOf(DataAccessException.class);
+        su.jdbc().update("update matricula set status = 'CANCELADA', motivo = 'teste' where aluno_id = ?", aluno);
+        DadosDeTeste.matricula(su.jdbc(), academiaA, aluno, plano, java.time.LocalDate.of(2026, 11, 3));
+    }
+
+    @Test
+    void cobrancaPagaExigeDataEForma() {
+        UUID usuario = DadosDeTeste.usuario(su.jdbc(), "rls-" + UUID.randomUUID() + "@teste.com");
+        UUID aluno = DadosDeTeste.aluno(su.jdbc(), usuario, academiaA, "ATIVO");
+        UUID plano = DadosDeTeste.plano(su.jdbc(), academiaA, "Plano pago");
+        UUID matricula = DadosDeTeste.matricula(su.jdbc(), academiaA, aluno, plano, java.time.LocalDate.of(2026, 11, 1));
+        UUID cobranca = DadosDeTeste.cobranca(su.jdbc(), academiaA, matricula, aluno, java.time.LocalDate.of(2026, 11, 1));
+
+        assertThatThrownBy(() -> su.jdbc().update("update pagamento set status = 'PAGO' where id = ?", cobranca))
+                .isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(() -> DadosDeTeste.cobranca(su.jdbc(), academiaA, matricula, aluno,
+                java.time.LocalDate.of(2026, 11, 1))).isInstanceOf(DataAccessException.class);
+    }
+
+    @Test
+    void shedlockAcessivelAoPapelDaAplicacao() {
+        jdbc.update("insert into shedlock (name, lock_until, locked_at, locked_by) values (?, now(), now(), 'teste')",
+                "teste-" + UUID.randomUUID());
+        assertThat(jdbc.queryForObject("select count(*) > 0 from shedlock", Boolean.class)).isTrue();
+    }
 }
