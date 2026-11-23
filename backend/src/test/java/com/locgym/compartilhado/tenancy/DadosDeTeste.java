@@ -40,7 +40,7 @@ public final class DadosDeTeste {
 
     public static UUID aluno(JdbcTemplate su, UUID usuario, UUID academia, String status) {
         UUID id = UUID.randomUUID();
-        String cpf = String.format("%011d", ThreadLocalRandom.current().nextLong(1, 99_999_999_999L));
+        String cpf = com.locgym.apoio.Cenarios.cpfValido();
         su.update("""
                 insert into aluno (id, academia_id, usuario_id, nome, cpf, telefone, data_nascimento,
                                    endereco, cidade, estado, cep, status)

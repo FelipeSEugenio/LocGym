@@ -27,6 +27,8 @@ public interface CobrancaRepositorio {
 
     boolean temAtrasada(UUID matriculaId);
 
+    boolean alunoTemAtrasada(UUID alunoId);
+
     Optional<LocalDate> vencimentoAtrasadoMaisAntigo(UUID matriculaId);
 
     Optional<LocalDate> maiorFimDePeriodo(UUID matriculaId);

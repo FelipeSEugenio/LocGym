@@ -22,6 +22,9 @@ public interface Cobrancas {
 
     boolean temEmAberto(UUID matriculaId);
 
+    /** Inadimplência é derivada: o aluno tem cobrança ATRASADA em qualquer matrícula (inclusive cancelada). */
+    boolean alunoInadimplente(UUID alunoId);
+
     java.util.Optional<LocalDate> vencimentoAtrasadoMaisAntigo(UUID matriculaId);
 
     /** Início do primeiro período ainda sem cobrança: o maior fim de período já cobrado, ou {@code aPartirDe}. */

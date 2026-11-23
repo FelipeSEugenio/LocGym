@@ -60,6 +60,11 @@ class CobrancaRepositorioJpa implements CobrancaRepositorio {
     }
 
     @Override
+    public boolean alunoTemAtrasada(UUID alunoId) {
+        return dados.existsByAlunoIdAndStatus(alunoId, StatusCobranca.ATRASADO);
+    }
+
+    @Override
     public Optional<LocalDate> vencimentoAtrasadoMaisAntigo(UUID matriculaId) {
         return dados.menorVencimentoAtrasado(matriculaId);
     }

@@ -15,6 +15,9 @@ public interface MatriculaRepositorio {
 
     List<Matricula> porStatus(StatusMatricula status);
 
+    /** @throws com.locgym.compartilhado.erros.RegraVioladaException MATRICULA_JA_EXISTE (índice único, corrida) */
+    void inserir(Matricula matricula);
+
     void salvar(Matricula matricula);
 
     void registrarPeriodo(UUID matriculaId, Periodo periodo, UUID cobrancaId);
@@ -26,5 +29,5 @@ public interface MatriculaRepositorio {
     List<Periodo> periodos(UUID matriculaId);
 
     /** Busca por trecho do nome do aluno; ordenada pelo nome do aluno. */
-    Pagina<Matricula> listar(StatusMatricula statusOuNulo, String buscaOuNulo, int pagina, int tamanho);
+    Pagina<MatriculaListada> listar(StatusMatricula statusOuNulo, String buscaOuNulo, int pagina, int tamanho);
 }

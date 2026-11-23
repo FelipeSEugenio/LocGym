@@ -121,6 +121,12 @@ public class ServicoCobrancas implements Cobrancas {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean alunoInadimplente(UUID alunoId) {
+        return cobrancas.alunoTemAtrasada(alunoId);
+    }
+
+    @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<LocalDate> vencimentoAtrasadoMaisAntigo(UUID matriculaId) {
         return cobrancas.vencimentoAtrasadoMaisAntigo(matriculaId);

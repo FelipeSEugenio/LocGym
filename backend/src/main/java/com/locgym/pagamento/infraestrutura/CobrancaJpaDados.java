@@ -19,6 +19,8 @@ interface CobrancaJpaDados extends JpaRepository<CobrancaJpa, UUID>, JpaSpecific
 
     boolean existsByMatriculaIdAndStatus(UUID matriculaId, StatusCobranca status);
 
+    boolean existsByAlunoIdAndStatus(UUID alunoId, StatusCobranca status);
+
     @Query("select min(c.vencimento) from CobrancaJpa c where c.matriculaId = :matriculaId and c.status = 'ATRASADO'")
     Optional<LocalDate> menorVencimentoAtrasado(UUID matriculaId);
 
