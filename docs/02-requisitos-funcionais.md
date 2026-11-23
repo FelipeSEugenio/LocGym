@@ -52,7 +52,7 @@
 
 ## RF07 — Pagamentos e inadimplência ✅ Fase 3
 - Aluno, academia, matrícula, valor, vencimento, período, data de pagamento, forma (dinheiro, PIX, crédito, débito, transferência), status (PENDENTE/PAGO/ATRASADO/CANCELADO), observações, motivo do cancelamento.
-- Registro manual pelo admin, sempre do valor integral; data do pagamento não pode ser futura (pagamento antecipado é aceito). Pagamento simultâneo da mesma cobrança → um 200 e um 409.
+- Registro manual pelo admin, sempre do valor integral; data do pagamento não pode ser futura (pagamento antecipado é aceito) nem anterior a 30 dias antes do início da matrícula. Pagamento simultâneo da mesma cobrança → um 200 e um 409.
 - **Abono:** cancelar uma cobrança com motivo concede o período (estende a vigência) sem contar como recebido.
 - **Rotina diária** às 00:05 de São Paulo, em uma instância por vez (ShedLock), academia por academia: gera cobranças (inclusive períodos que faltam), marca ATRASADO no dia seguinte ao vencimento (exceto matrícula suspensa), vence matrículas além da carência. Idempotente; falha numa academia não para as outras. Academias inativas são ignoradas.
 - **Inadimplente** = tem ao menos uma cobrança ATRASADA, em qualquer matrícula (calculado, não armazenado). Tela de inadimplência ordenada pelo atraso mais antigo.

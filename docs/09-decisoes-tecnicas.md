@@ -79,7 +79,7 @@ Spring Boot 4.2, Spring Modulith 2.2, Java 21, PostgreSQL 17, Apache Kafka 4.3 (
 
 ## ADR-018 — Suspensão "para o tempo" (aceita, Fase 3)
 **Contexto:** o design previa deslocar âncora e vigência na reativação; com cobrança atrasada ou vigência encerrada antes da suspensão, isso quebrava a sequência dos períodos e a quitação seguinte falhava.
-**Decisão:** na reativação, toda data **posterior** ao início da suspensão (vigência, inícios/fins de período e de cobrança; vencimento só de cobrança pendente) anda os dias suspensos; as anteriores ficam. A nova âncora é o primeiro limite de período após a suspensão, deslocado.
+**Decisão:** na reativação, toda data **posterior** ao início da suspensão (vigência, inícios/fins de período e de cobrança) anda os dias suspensos; as anteriores ficam. O vencimento de cobrança pendente anda se vencer no dia da suspensão ou depois. As cobranças são deslocadas da mais tardia para a mais cedo (o índice único de período não é deferrable). A nova âncora é o primeiro limite de período após a suspensão, deslocado.
 **Consequências:** uma regra única para todos os casos; a dívida anterior à suspensão continua vencida.
 
 ## ADR-019 — Abono estende a vigência e recuperação de períodos parados (aceita, Fase 3)
