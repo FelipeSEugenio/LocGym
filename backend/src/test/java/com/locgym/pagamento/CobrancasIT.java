@@ -86,6 +86,9 @@ class CobrancasIT {
         aluno = DadosDeTeste.aluno(su.jdbc(), usuario, admin.academiaId(), "ATIVO");
         UUID plano = DadosDeTeste.plano(su.jdbc(), admin.academiaId(), "Mensal");
         matricula = DadosDeTeste.matricula(su.jdbc(), admin.academiaId(), aluno, plano, hoje.minusMonths(2));
+        // Matrícula de apoio CANCELADA: a quitação não mexe nela, isolando as regras do módulo de pagamento
+        // (a integração com a vigência é coberta em MatriculasIT).
+        su.jdbc().update("update matricula set status = 'CANCELADA', motivo = 'apoio de teste' where id = ?", matricula);
         quitacoes.clear();
     }
 
