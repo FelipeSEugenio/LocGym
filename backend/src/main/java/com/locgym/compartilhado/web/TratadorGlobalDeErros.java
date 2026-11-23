@@ -47,6 +47,13 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
         return comCodigo(HttpStatus.CONFLICT, "Operação não permitida", ex.getMessage(), ex.codigo());
     }
 
+    /** Duas operações alteraram o mesmo registro ao mesmo tempo (versão otimista). */
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    public ProblemDetail conflitoDeAtualizacao(org.springframework.orm.ObjectOptimisticLockingFailureException ex) {
+        return comCodigo(HttpStatus.CONFLICT, "Conflito", "Registro alterado por outra operação, recarregue",
+                "CONFLITO_DE_ATUALIZACAO");
+    }
+
     @ExceptionHandler(AcessoNegadoException.class)
     public ProblemDetail acessoNegado(AcessoNegadoException ex) {
         return comCodigo(HttpStatus.FORBIDDEN, "Acesso negado", ex.getMessage(), ex.codigo());

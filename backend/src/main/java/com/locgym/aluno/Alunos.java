@@ -1,5 +1,7 @@
 package com.locgym.aluno;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -9,4 +11,7 @@ public interface Alunos {
     record SituacaoAluno(UUID id, String nome, boolean ativo) {}
 
     Optional<SituacaoAluno> situacao(UUID alunoId);
+
+    /** Nomes dos alunos informados que existem na academia do contexto. */
+    Map<UUID, String> nomes(Collection<UUID> alunoIds);
 }

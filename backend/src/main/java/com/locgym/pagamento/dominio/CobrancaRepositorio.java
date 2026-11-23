@@ -19,7 +19,17 @@ public interface CobrancaRepositorio {
 
     Optional<Cobranca> maisAntigaEmAberto(UUID matriculaId);
 
-    boolean existePeriodo(UUID matriculaId, LocalDate periodoInicio);
+    /** Insere se ainda não há cobrança para esse início de período. @return {@code true} se inseriu */
+    boolean inserirSeAusente(Cobranca cobranca);
+
+    /** Em aberto (PENDENTE/ATRASADO), ordenadas pelo início do período. */
+    List<Cobranca> emAbertoDaMatricula(UUID matriculaId);
+
+    boolean temAtrasada(UUID matriculaId);
+
+    Optional<LocalDate> vencimentoAtrasadoMaisAntigo(UUID matriculaId);
+
+    Optional<LocalDate> maiorFimDePeriodo(UUID matriculaId);
 
     List<Cobranca> pendentesVencidas(LocalDate hoje, Set<UUID> matriculasIgnoradas);
 

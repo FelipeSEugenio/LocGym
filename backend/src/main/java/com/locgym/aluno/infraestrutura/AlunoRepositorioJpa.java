@@ -60,4 +60,13 @@ class AlunoRepositorioJpa implements AlunoRepositorio {
         entidade.copiar(aluno);
         dados.save(entidade);
     }
+
+    @Override
+    public java.util.Map<UUID, String> nomes(java.util.Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return java.util.Map.of();
+        }
+        return dados.nomesPorIds(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(AlunoJpaDados.IdNome::getId, AlunoJpaDados.IdNome::getNome));
+    }
 }
