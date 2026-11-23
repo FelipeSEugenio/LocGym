@@ -203,11 +203,12 @@ public class ServicoCobrancas implements Cobrancas {
 
     /** Existe na academia e é a mais antiga em aberto da matrícula (quitação sempre em ordem). */
     private Cobranca quitavel(UUID cobrancaId) {
-        Cobranca c = cobrancas.porId(cobrancaId).orElseThrow(() -> new NaoEncontradoException("Cobrança não encontrada"));
-        if (!c.status().emAberto()) {
+        Cobranca c = cobrancas.porIdParaAtualizar(cobrancaId)
+                .orElseThrow(() -> new NaoEncontradoException("Cobrança não encontrada"));
+        Cobranca maisAntiga = cobrancas.maisAntigaEmAberto(c.matriculaId()).orElse(null);
+        if (!c.status().emAberto() || maisAntiga == null) {
             throw new RegraVioladaException("COBRANCA_NAO_EM_ABERTO", "Esta cobrança já foi paga ou cancelada");
         }
-        Cobranca maisAntiga = cobrancas.maisAntigaEmAberto(c.matriculaId()).orElseThrow();
         if (!maisAntiga.id().equals(c.id())) {
             throw new RegraVioladaException("QUITAR_MAIS_ANTIGA_PRIMEIRO",
                     "Quite primeiro a cobrança de " + DATA_BR.format(maisAntiga.vencimento()));

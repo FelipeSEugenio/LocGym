@@ -14,6 +14,9 @@ public interface CobrancaRepositorio {
 
     Optional<Cobranca> porId(UUID id);
 
+    /** Lê bloqueando a linha até o fim da transação (pagamentos simultâneos da mesma cobrança se enfileiram). */
+    Optional<Cobranca> porIdParaAtualizar(UUID id);
+
     /** Ordenadas por início do período. */
     List<Cobranca> daMatricula(UUID matriculaId);
 

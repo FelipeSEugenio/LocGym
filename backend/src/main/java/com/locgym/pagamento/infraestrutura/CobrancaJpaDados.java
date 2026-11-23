@@ -15,6 +15,10 @@ interface CobrancaJpaDados extends JpaRepository<CobrancaJpa, UUID>, JpaSpecific
 
     List<CobrancaJpa> findByMatriculaIdOrderByPeriodoInicio(UUID matriculaId);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from CobrancaJpa c where c.id = :id")
+    Optional<CobrancaJpa> buscarParaAtualizar(UUID id);
+
     List<CobrancaJpa> findByMatriculaIdAndStatusInOrderByPeriodoInicio(UUID matriculaId, Collection<StatusCobranca> status);
 
     boolean existsByMatriculaIdAndStatus(UUID matriculaId, StatusCobranca status);

@@ -39,6 +39,11 @@ class CobrancaRepositorioJpa implements CobrancaRepositorio {
     }
 
     @Override
+    public Optional<Cobranca> porIdParaAtualizar(UUID id) {
+        return dados.buscarParaAtualizar(id).map(CobrancaJpa::paraDominio);
+    }
+
+    @Override
     public List<Cobranca> daMatricula(UUID matriculaId) {
         return dados.findByMatriculaIdOrderByPeriodoInicio(matriculaId).stream().map(CobrancaJpa::paraDominio).toList();
     }
