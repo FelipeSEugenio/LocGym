@@ -53,6 +53,8 @@ export const routes: Routes = [
       { path: 'matriculas', loadComponent: () => import('./paginas/admin/matriculas/matriculas-lista').then((m) => m.MatriculasLista) },
       { path: 'matriculas/nova', loadComponent: () => import('./paginas/admin/matriculas/nova-matricula').then((m) => m.NovaMatricula) },
       { path: 'matriculas/:id', loadComponent: () => import('./paginas/admin/matriculas/matricula-detalhe').then((m) => m.MatriculaDetalhePagina) },
+      { path: 'cobrancas', loadComponent: () => import('./paginas/admin/cobrancas/cobrancas-lista').then((m) => m.CobrancasLista) },
+      { path: 'inadimplencia', loadComponent: () => import('./paginas/admin/inadimplencia/inadimplencia').then((m) => m.InadimplenciaPagina) },
       { path: 'administradores', loadComponent: () => import('./paginas/admin/administradores/administradores').then((m) => m.Administradores) },
       { path: 'academia', loadComponent: () => import('./paginas/admin/academia/academia').then((m) => m.AcademiaPagina) },
     ],

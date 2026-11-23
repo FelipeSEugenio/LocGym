@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
-import { of } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable, of, throwError } from 'rxjs';
+import { FinanceiroApi } from '../../../core/api/financeiro';
 import { AlunosApi } from '../../../core/api/cadastros';
 import { AlunoForm } from './aluno-form';
 
@@ -10,13 +12,15 @@ const ALUNO = {
 };
 
 describe('AlunoForm', () => {
-  function montar(id: string | null) {
+  function montar(id: string | null, matricula: Observable<unknown> = throwError(() => new HttpErrorResponse({ status: 404 }))) {
     const api = { obter: vi.fn(() => of(ALUNO)), criar: vi.fn(() => of(ALUNO)), atualizar: vi.fn(() => of(ALUNO)) };
+    const financeiro = { matriculaDoAluno: vi.fn(() => matricula) };
     TestBed.configureTestingModule({
       imports: [AlunoForm],
       providers: [
         provideRouter([]),
         { provide: AlunosApi, useValue: api },
+        { provide: FinanceiroApi, useValue: financeiro },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap(id ? { id } : {}) } } },
       ],
     });
@@ -49,5 +53,24 @@ describe('AlunoForm', () => {
     const { componente, api } = montar('al1');
     componente.salvar();
     expect(api.atualizar).toHaveBeenCalledWith('al1', expect.not.objectContaining({ email: expect.anything() }));
+  });
+
+  it('cartaoMatriculaAtual', () => {
+    const { fixture } = montar('a1', of({ id: 'm1', status: 'ATIVA', vigenteAte: '2026-12-01', inadimplente: true,
+      plano: { id: 'p1', nome: 'Mensal' } }));
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Ativa');
+    expect(el.textContent).toContain('01/12/2026');
+    expect(el.textContent).toContain('Inadimplente');
+    expect(el.querySelector('a[href="/admin/matriculas/m1"]')).not.toBeNull();
+  });
+
+  it('semMatriculaOfereceMatricular', () => {
+    const { fixture } = montar('a1');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Sem matrícula');
+    expect(el.querySelector('a[href="/admin/matriculas/nova?alunoId=a1"]')?.textContent).toContain('Matricular');
   });
 });

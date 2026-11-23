@@ -52,6 +52,8 @@ export class ShellAdmin {
     { rota: 'professores', rotulo: 'Professores', icone: 'sports_martial_arts' },
     { rota: 'planos', rotulo: 'Planos', icone: 'sell' },
     { rota: 'matriculas', rotulo: 'Matrículas', icone: 'assignment_ind' },
+    { rota: 'cobrancas', rotulo: 'Cobranças', icone: 'payments' },
+    { rota: 'inadimplencia', rotulo: 'Inadimplência', icone: 'report' },
     { rota: 'administradores', rotulo: 'Administradores', icone: 'admin_panel_settings' },
     { rota: 'academia', rotulo: 'Academia', icone: 'store' },
   ];
