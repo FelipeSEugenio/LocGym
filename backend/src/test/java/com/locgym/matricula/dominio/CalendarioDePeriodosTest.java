@@ -48,11 +48,18 @@ class CalendarioDePeriodosTest {
     }
 
     @Test
-    void inicioForaDoCalendario() {
-        assertThatThrownBy(() -> CalendarioDePeriodos.periodoQueComecaEm(of(2026, 11, 10), 1, of(2026, 12, 11)))
-                .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> CalendarioDePeriodos.periodoQueComecaEm(of(2026, 11, 10), 1, of(2026, 10, 10)))
-                .isInstanceOf(IllegalArgumentException.class);
+    void fimUsaDiaAncoraLimitadoAoMes() {
+        assertThat(CalendarioDePeriodos.fimDoPeriodo(of(2026, 2, 28), 1, 31)).isEqualTo(of(2026, 3, 31));
+        assertThat(CalendarioDePeriodos.fimDoPeriodo(of(2026, 3, 31), 1, 31)).isEqualTo(of(2026, 4, 30));
+        assertThat(CalendarioDePeriodos.fimDoPeriodo(of(2026, 12, 11), 1, 10)).isEqualTo(of(2027, 1, 10));
+    }
+
+    @Test
+    void primeiroLimiteDepoisDe() {
+        // âncora 01/09, mensal: limites 01/10, 01/11, 01/12…
+        assertThat(CalendarioDePeriodos.primeiroLimiteDepoisDe(of(2026, 9, 1), 1, of(2026, 11, 1))).isEqualTo(of(2026, 12, 1));
+        assertThat(CalendarioDePeriodos.primeiroLimiteDepoisDe(of(2026, 9, 1), 1, of(2026, 11, 5))).isEqualTo(of(2026, 12, 1));
+        assertThat(CalendarioDePeriodos.primeiroLimiteDepoisDe(of(2026, 9, 1), 1, of(2026, 8, 5))).isEqualTo(of(2026, 9, 1));
     }
 
     @Test

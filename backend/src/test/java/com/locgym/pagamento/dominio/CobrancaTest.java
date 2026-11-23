@@ -147,14 +147,34 @@ class CobrancaTest {
     }
 
     @Test
-    void deslocarSoPendente() {
+    void deslocarPendenteInteiraDepoisDaSuspensao() {
         Cobranca pendente = nova(LocalDate.of(2026, 12, 1));
-        pendente.deslocar(12);
+        pendente.deslocar(LocalDate.of(2026, 11, 1), 12);
 
         assertThat(pendente.vencimento()).isEqualTo(LocalDate.of(2026, 12, 13));
         assertThat(pendente.periodoInicio()).isEqualTo(LocalDate.of(2026, 12, 13));
         assertThat(pendente.periodoFim()).isEqualTo(LocalDate.of(2027, 1, 13));
-        assertThatThrownBy(() -> nova(LocalDate.of(2026, 10, 1)).deslocar(12)).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void deslocarAtrasadaSoEstendeOFimEMantemVencimento() {
+        Cobranca atrasada = nova(LocalDate.of(2026, 11, 1));   // vencida antes da suspensão
+        atrasada.deslocar(LocalDate.of(2026, 11, 5), 10);
+
+        assertThat(atrasada.status()).isEqualTo(StatusCobranca.ATRASADO);
+        assertThat(atrasada.vencimento()).isEqualTo(LocalDate.of(2026, 11, 1));
+        assertThat(atrasada.periodoInicio()).isEqualTo(LocalDate.of(2026, 11, 1));
+        assertThat(atrasada.periodoFim()).isEqualTo(LocalDate.of(2026, 12, 11));
+    }
+
+    @Test
+    void deslocarPagaNaoMexeNoVencimento() {
+        Cobranca paga = nova(LocalDate.of(2026, 12, 1));
+        paga.registrarPagamento(HOJE, FormaPagamento.PIX, null, HOJE);
+        paga.deslocar(LocalDate.of(2026, 11, 1), 12);
+
+        assertThat(paga.vencimento()).isEqualTo(LocalDate.of(2026, 12, 1));
+        assertThat(paga.periodoInicio()).isEqualTo(LocalDate.of(2026, 12, 13));
     }
 
     @Test

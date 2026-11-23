@@ -99,14 +99,20 @@ public class Cobranca {
         return true;
     }
 
-    /** Reativação de matrícula suspensa: empurra a cobrança pendente pelos dias suspensos. */
-    public void deslocar(int dias) {
-        if (status != StatusCobranca.PENDENTE) {
-            throw new IllegalStateException("Só cobrança PENDENTE é deslocada; status " + status);
+    /**
+     * Reativação de matrícula suspensa: toda data do período posterior a {@code desde} anda {@code dias}. O
+     * vencimento só anda em cobrança PENDENTE (atrasada continua atrasada; paga/cancelada é histórico).
+     */
+    public void deslocar(LocalDate desde, int dias) {
+        if (periodoInicio.isAfter(desde)) {
+            periodoInicio = periodoInicio.plusDays(dias);
         }
-        vencimento = vencimento.plusDays(dias);
-        periodoInicio = periodoInicio.plusDays(dias);
-        periodoFim = periodoFim.plusDays(dias);
+        if (periodoFim.isAfter(desde)) {
+            periodoFim = periodoFim.plusDays(dias);
+        }
+        if (status == StatusCobranca.PENDENTE && vencimento.isAfter(desde)) {
+            vencimento = vencimento.plusDays(dias);
+        }
     }
 
     private void exigirEmAberto() {

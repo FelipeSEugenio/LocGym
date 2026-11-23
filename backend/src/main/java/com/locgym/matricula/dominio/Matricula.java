@@ -21,6 +21,14 @@ public class Matricula {
 
     public record QuitacaoAplicada(boolean primeira, boolean ativou) {}
 
+    /** O tempo parou em {@code desde} por {@code dias}: toda data posterior a {@code desde} anda {@code dias}. */
+    public record Reativacao(LocalDate desde, int dias) {
+
+        public LocalDate deslocar(LocalDate data) {
+            return data.isAfter(desde) ? data.plusDays(dias) : data;
+        }
+    }
+
     private final UUID id;
     private final UUID alunoId;
     private final UUID planoId;
@@ -121,17 +129,22 @@ public class Matricula {
         this.status = StatusMatricula.SUSPENSA;
     }
 
-    /** @return dias suspensos — a vigência e a âncora andam esse tanto. */
-    public int reativar(LocalDate hoje) {
+    /**
+     * O tempo da matrícula "parou" durante a suspensão: toda data posterior ao início da suspensão (vigência,
+     * limites de período, cobranças) anda os dias suspensos; as anteriores ficam. A nova âncora é o primeiro limite
+     * de período depois da suspensão, deslocado.
+     */
+    public Reativacao reativar(LocalDate hoje) {
         if (status != StatusMatricula.SUSPENSA) {
             throw new RegraVioladaException("MATRICULA_NAO_SUSPENSA", "Só matrícula suspensa pode ser reativada");
         }
-        int dias = (int) Math.max(0, ChronoUnit.DAYS.between(suspensaDesde, hoje));
-        dataBase = dataBase.plusDays(dias);
-        vigenteAte = vigenteAte.plusDays(dias);
+        Reativacao r = new Reativacao(suspensaDesde, (int) Math.max(0, ChronoUnit.DAYS.between(suspensaDesde, hoje)));
+        LocalDate proximoLimite = CalendarioDePeriodos.primeiroLimiteDepoisDe(dataBase, meses(), suspensaDesde);
+        dataBase = proximoLimite.plusDays(r.dias());
+        vigenteAte = r.deslocar(vigenteAte);
         suspensaDesde = null;
         status = StatusMatricula.ATIVA;
-        return dias;
+        return r;
     }
 
     public void cancelar(String motivo) {

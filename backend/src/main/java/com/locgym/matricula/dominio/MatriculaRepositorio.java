@@ -19,7 +19,7 @@ public interface MatriculaRepositorio {
 
     void registrarPeriodo(UUID matriculaId, Periodo periodo, UUID cobrancaId);
 
-    /** Desloca em {@code dias} os períodos com início em {@code desde} ou depois (reativação). */
+    /** Reativação: toda data de período (início ou fim) posterior a {@code desde} anda {@code dias}. */
     void deslocarPeriodosDesde(UUID matriculaId, LocalDate desde, int dias);
 
     /** Ordenados por início. */

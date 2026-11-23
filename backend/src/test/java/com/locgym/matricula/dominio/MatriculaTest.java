@@ -177,13 +177,34 @@ class MatriculaTest {
         assertThat(m.suspensaDesde()).isEqualTo(of(2026, 11, 1));
         assertThat(m.motivo()).isEqualTo("Viagem");
 
-        int dias = m.reativar(of(2026, 11, 13));
+        var reativacao = m.reativar(of(2026, 11, 13));
 
-        assertThat(dias).isEqualTo(12);
+        assertThat(reativacao.dias()).isEqualTo(12);
+        assertThat(reativacao.desde()).isEqualTo(of(2026, 11, 1));
         assertThat(m.status()).isEqualTo(StatusMatricula.ATIVA);
         assertThat(m.suspensaDesde()).isNull();
         assertThat(m.vigenteAte()).isEqualTo(of(2026, 12, 13));
-        assertThat(m.dataBase()).isEqualTo(baseAntes.plusDays(12));
+        // âncora passa a ser o primeiro limite depois da suspensão (01/12), deslocado: 13/12
+        assertThat(m.dataBase()).isEqualTo(of(2026, 12, 13));
+        assertThat(baseAntes).isEqualTo(of(2026, 9, 1));
+        assertThat(m.proximoPeriodo()).isEqualTo(new Periodo(of(2026, 12, 13), of(2027, 1, 13)));
+    }
+
+    @Test
+    void reativarComVigenciaEncerradaAntesDaSuspensaoNaoMoveVigencia() {
+        // pago até 01/11, cobrança de 01/11 atrasada (na carência), suspensa em 05/11, reativada em 15/11
+        Matricula m = existente(of(2026, 11, 1), StatusMatricula.ATIVA);
+        m.suspender("lesão", of(2026, 11, 5));
+
+        var reativacao = m.reativar(of(2026, 11, 15));
+
+        assertThat(reativacao.dias()).isEqualTo(10);
+        assertThat(m.vigenteAte()).isEqualTo(of(2026, 11, 1));
+        assertThat(m.dataBase()).isEqualTo(of(2026, 12, 11));
+        // a quitação da atrasada continua em sequência: período [01/11, 11/12)
+        m.aplicarQuitacao(new Periodo(of(2026, 11, 1), of(2026, 12, 11)), false, of(2026, 11, 15));
+        assertThat(m.vigenteAte()).isEqualTo(of(2026, 12, 11));
+        assertThat(m.proximoPeriodo()).isEqualTo(new Periodo(of(2026, 12, 11), of(2027, 1, 11)));
     }
 
     @Test
