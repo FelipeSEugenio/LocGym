@@ -120,4 +120,53 @@ class AcademiaIT {
         var r = http.comToken(admin.token()).comContexto(outro.academiaId(), "ADMIN").get("/api/v1/academia");
         assertThat(r.status()).isEqualTo(403);
     }
+
+    @Test
+    void parametrosDeCobrancaPadraoEEditaveis() {
+        var cliente = http.comToken(admin.token()).comContexto(admin.academiaId(), "ADMIN");
+        var atual = cliente.get("/api/v1/academia");
+        assertThat(atual.corpo().get("diasAntecedenciaCobranca").asInt()).isEqualTo(7);
+        assertThat(atual.corpo().get("diasCarencia").asInt()).isEqualTo(10);
+
+        var dados = new java.util.LinkedHashMap<String, Object>(dadosAcademia(atual.texto("nome")));
+        dados.put("cnpj", atual.texto("cnpj"));
+        dados.put("diasAntecedenciaCobranca", 3);
+        dados.put("diasCarencia", 0);
+        var r = cliente.put("/api/v1/academia", dados);
+
+        assertThat(r.status()).as(r.corpo().toString()).isEqualTo(200);
+        var depois = cliente.get("/api/v1/academia");
+        assertThat(depois.corpo().get("diasAntecedenciaCobranca").asInt()).isEqualTo(3);
+        assertThat(depois.corpo().get("diasCarencia").asInt()).isEqualTo(0);
+        assertThat(su.jdbc().queryForObject(
+                "select count(*) from auditoria where academia_id = ? and acao = 'PARAMETROS_COBRANCA_ALTERADOS'",
+                Integer.class, admin.academiaId())).isEqualTo(1);
+
+        dados.put("diasAntecedenciaCobranca", 0);
+        assertThat(cliente.put("/api/v1/academia", dados).status()).isEqualTo(400);
+        dados.put("diasAntecedenciaCobranca", 7);
+        dados.put("diasCarencia", 61);
+        assertThat(cliente.put("/api/v1/academia", dados).status()).isEqualTo(400);
+    }
+
+    @Test
+    void semParametrosMantemValores() {
+        var cliente = http.comToken(admin.token()).comContexto(admin.academiaId(), "ADMIN");
+        var dados = new java.util.LinkedHashMap<String, Object>(dadosAcademia("Outro nome"));
+        dados.put("cnpj", cliente.get("/api/v1/academia").texto("cnpj"));
+
+        assertThat(cliente.put("/api/v1/academia", dados).status()).isEqualTo(200);
+
+        var depois = cliente.get("/api/v1/academia");
+        assertThat(depois.corpo().get("diasAntecedenciaCobranca").asInt()).isEqualTo(7);
+        assertThat(depois.corpo().get("diasCarencia").asInt()).isEqualTo(10);
+    }
+
+    @Test
+    void perfilSistemaNaoPodeSerUsadoNaRequisicao() {
+        var r = http.comToken(admin.token()).comContexto(admin.academiaId(), "SISTEMA").get("/api/v1/academia");
+
+        assertThat(r.status()).isEqualTo(400);
+        assertThat(r.texto("codigo")).isEqualTo("CONTEXTO_AUSENTE");
+    }
 }

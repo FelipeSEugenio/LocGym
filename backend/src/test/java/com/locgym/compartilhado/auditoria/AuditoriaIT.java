@@ -65,4 +65,18 @@ class AuditoriaIT {
                 AcaoAuditada.PLANO_STATUS_ALTERADO, "plano", UUID.randomUUID(), null, null)))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    void sistemaGravaUsuarioNulo() {
+        UUID academia = DadosDeTeste.academia(su.jdbc());
+        UUID entidade = UUID.randomUUID();
+        TenantContext.definir(ContextoTenant.sistema(academia));
+
+        tx.executeWithoutResult(s -> auditoria.registrar(AcaoAuditada.PLANO_STATUS_ALTERADO, "plano", entidade,
+                null, null));
+
+        assertThat(su.jdbc().queryForObject(
+                "select count(*) from auditoria where entidade_id = ? and academia_id = ? and usuario_id is null",
+                Integer.class, entidade, academia)).isEqualTo(1);
+    }
 }

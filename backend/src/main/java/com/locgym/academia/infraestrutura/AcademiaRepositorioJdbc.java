@@ -1,5 +1,7 @@
 package com.locgym.academia.infraestrutura;
 
+import com.locgym.academia.ParametrosCobranca;
+import java.util.List;
 import com.locgym.academia.dominio.Academia;
 import com.locgym.academia.dominio.DadosDaAcademia;
 import com.locgym.academia.dominio.Portas.AcademiaRepositorio;
@@ -26,7 +28,14 @@ class AcademiaRepositorioJdbc implements AcademiaRepositorio {
                 new DadosDaAcademia(rs.getString("nome"), rs.getString("cnpj"), rs.getString("endereco"),
                         rs.getString("cidade"), rs.getString("estado"), rs.getString("cep"),
                         rs.getString("telefone"), rs.getString("email")),
-                StatusAcademia.valueOf(rs.getString("status"))), id).stream().findFirst();
+                StatusAcademia.valueOf(rs.getString("status")),
+                new ParametrosCobranca(rs.getInt("dias_antecedencia_cobranca"), rs.getInt("dias_carencia"))),
+                id).stream().findFirst();
+    }
+
+    @Override
+    public List<UUID> idsAtivas() {
+        return jdbc.queryForList("select id from academia where status = 'ATIVA' order by id", UUID.class);
     }
 
     @Override
@@ -56,9 +65,11 @@ class AcademiaRepositorioJdbc implements AcademiaRepositorio {
         var d = a.dados();
         jdbc.update("""
                 update academia set nome = ?, cnpj = ?, endereco = ?, cidade = ?, estado = ?, cep = ?, telefone = ?,
-                                    email = ?, status = ?, atualizado_em = now()
+                                    email = ?, status = ?, dias_antecedencia_cobranca = ?, dias_carencia = ?,
+                                    atualizado_em = now()
                  where id = ?
                 """, d.nome(), d.cnpj(), d.endereco(), d.cidade(), d.estado(), d.cep(), d.telefone(), d.email(),
-                a.status().name(), a.id());
+                a.status().name(), a.parametrosCobranca().diasAntecedencia(), a.parametrosCobranca().diasCarencia(),
+                a.id());
     }
 }

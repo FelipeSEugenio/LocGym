@@ -1,5 +1,8 @@
 package com.locgym.academia.web;
 
+import com.locgym.academia.ParametrosCobranca;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import com.locgym.academia.dominio.DadosDaAcademia;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -15,7 +18,17 @@ record DadosAcademiaRequisicao(
         @NotBlank @Pattern(regexp = "[A-Za-z]{2}", message = "UF inválida") String estado,
         @NotBlank @Pattern(regexp = "\\d{5}-?\\d{3}", message = "CEP inválido") String cep,
         @NotBlank @Size(max = 20) String telefone,
-        @NotBlank @Size(max = 254) String email) {
+        @NotBlank @Size(max = 254) String email,
+        @Min(value = 1, message = "Informe de 1 a 30 dias") @Max(value = 30, message = "Informe de 1 a 30 dias")
+        Integer diasAntecedenciaCobranca,
+        @Min(value = 0, message = "Informe de 0 a 60 dias") @Max(value = 60, message = "Informe de 0 a 60 dias")
+        Integer diasCarencia) {
+
+    /** Nulo quando a requisição não traz os dois parâmetros (mantém os atuais). */
+    ParametrosCobranca parametrosCobranca() {
+        return diasAntecedenciaCobranca == null || diasCarencia == null ? null
+                : new ParametrosCobranca(diasAntecedenciaCobranca, diasCarencia);
+    }
 
     DadosDaAcademia paraDominio() {
         return new DadosDaAcademia(nome.strip(), cnpj.replaceAll("\\D", ""), endereco.strip(), cidade.strip(),

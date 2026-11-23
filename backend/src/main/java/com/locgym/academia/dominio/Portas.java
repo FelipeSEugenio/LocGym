@@ -11,6 +11,8 @@ public final class Portas {
     public interface AcademiaRepositorio {
         Optional<Academia> porId(UUID id);
 
+        List<UUID> idsAtivas();
+
         /** Bloqueia a linha da academia até o fim da transação (serializa mudanças de administradores). */
         void bloquear(UUID id);
 

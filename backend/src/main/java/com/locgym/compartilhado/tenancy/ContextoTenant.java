@@ -9,6 +9,13 @@ public record ContextoTenant(UUID academiaId, Perfil perfil, boolean academiaAti
     public ContextoTenant {
         Objects.requireNonNull(academiaId);
         Objects.requireNonNull(perfil);
-        Objects.requireNonNull(usuarioId);
+        if (perfil != Perfil.SISTEMA) {
+            Objects.requireNonNull(usuarioId);
+        }
+    }
+
+    /** Contexto de uma rotina interna (ex.: rotina diária) sobre uma academia, sem usuário. */
+    public static ContextoTenant sistema(UUID academiaId) {
+        return new ContextoTenant(academiaId, Perfil.SISTEMA, true, null);
     }
 }

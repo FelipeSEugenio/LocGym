@@ -64,7 +64,12 @@ export interface Administrador {
   email: string;
 }
 
-export interface Academia extends DadosAcademia {
+export interface ParametrosCobranca {
+  diasAntecedenciaCobranca: number;
+  diasCarencia: number;
+}
+
+export interface Academia extends DadosAcademia, ParametrosCobranca {
   id: string;
   status: 'ATIVA' | 'INATIVA';
 }

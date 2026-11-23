@@ -109,7 +109,8 @@ class FiltroContextoTenant extends OncePerRequestFilter {
 
     private static Optional<Perfil> perfil(String valor) {
         try {
-            return valor == null ? Optional.empty() : Optional.of(Perfil.valueOf(valor));
+            return valor == null ? Optional.empty()
+                    : Optional.of(Perfil.valueOf(valor)).filter(p -> p != Perfil.SISTEMA);
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }

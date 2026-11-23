@@ -10,7 +10,8 @@ import { AlunosApi } from '../../../core/api/cadastros';
 import { mensagemDeErro } from '../../../core/api/erros';
 import { Aluno, DadosAluno, StatusAluno } from '../../../core/api/modelos';
 import { cpfValido, senhaMinima } from '../../../core/validadores';
-import { ROTULO_STATUS } from '../rotulos';
+import { FinanceiroApi, MatriculaDetalhe } from '../../../core/api/financeiro';
+import { COR_STATUS, formatarData, ROTULO_MATRICULA, ROTULO_STATUS } from '../rotulos';
 
 @Component({
   selector: 'app-aluno-form',
@@ -42,6 +43,21 @@ import { ROTULO_STATUS } from '../rotulos';
       </div>
     </form>
 
+    @if (id) {
+      <h3>Matrícula</h3>
+      @if (matricula(); as m) {
+        <p>
+          <span class="chip" [class]="'chip ' + cor[m.status]">{{ rotuloMatricula[m.status] }}</span>
+          {{ m.plano.nome }} — vigente até {{ data(m.vigenteAte) }}
+          @if (m.inadimplente) { <strong class="erro"> · Inadimplente</strong> }
+        </p>
+        <a mat-stroked-button [routerLink]="['/admin/matriculas', m.id]">Ver matrícula</a>
+      } @else if (semMatricula()) {
+        <p>Sem matrícula ativa.</p>
+        <a mat-stroked-button routerLink="/admin/matriculas/nova" [queryParams]="{ alunoId: id }">Matricular</a>
+      }
+    }
+
     @if (aluno(); as a) {
       <h3>Status</h3>
       <mat-form-field>
@@ -64,6 +80,10 @@ export class AlunoForm {
   readonly opcoesStatus: StatusAluno[] = ['ATIVO', 'INATIVO', 'CANCELADO'];
   readonly rotulos = ROTULO_STATUS;
   readonly aluno = signal<Aluno | null>(null);
+  readonly matricula = signal<MatriculaDetalhe | null>(null);
+  readonly semMatricula = signal(false);
+  readonly rotuloMatricula = ROTULO_MATRICULA;
+  readonly cor = COR_STATUS;
   readonly erro = signal<string | null>(null);
 
   readonly form = inject(FormBuilder).nonNullable.group({
@@ -81,6 +101,10 @@ export class AlunoForm {
 
   constructor() {
     if (this.id) {
+      inject(FinanceiroApi).matriculaDoAluno(this.id).subscribe({
+        next: (m) => this.matricula.set(m),
+        error: () => this.semMatricula.set(true),
+      });
       this.form.controls.email.disable();
       this.form.controls.senhaInicial.disable();
       this.api.obter(this.id).subscribe((a) => {
@@ -116,5 +140,9 @@ export class AlunoForm {
       },
       error: (e) => this.erro.set(mensagemDeErro(e)),
     });
+  }
+
+  data(d: string): string {
+    return formatarData(d);
   }
 }

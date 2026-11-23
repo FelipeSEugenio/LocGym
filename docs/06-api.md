@@ -43,7 +43,7 @@
 
 | Método | Caminho | Descrição |
 |---|---|---|
-| GET / PUT | `/api/v1/academia` | Dados da academia ativa. |
+| GET / PUT | `/api/v1/academia` | Dados da academia ativa, incluindo `diasAntecedenciaCobranca` (1–30) e `diasCarencia` (0–60) — opcionais no PUT (ausentes = mantém). Mudança dos parâmetros é auditada. |
 | PATCH | `/api/v1/academia/status` | `{status: ATIVA \| INATIVA}` — única escrita aceita com a academia inativa. Auditado. |
 | GET | `/api/v1/administradores` | Lista `{usuarioId, nome, email}` (nome informado no convite). |
 | POST | `/api/v1/administradores` | `{nome, email, senhaInicial}` → 201. Mesma resposta para e-mail novo ou existente (conta existente mantém a senha). Auditado. |
@@ -58,6 +58,20 @@
 | GET | `/api/v1/planos?status=` | Lista completa, ordenada por nome. |
 | POST / GET / PUT | `/api/v1/planos[/{id}]` | `{nome, descricao, valor, periodicidade: MENSAL \| TRIMESTRAL \| SEMESTRAL \| ANUAL}`. Sem exclusão (405). |
 | PATCH | `/api/v1/planos/{id}/status` | `{status: ATIVO \| INATIVO}`. Auditado. |
+| GET | `/api/v1/matriculas?status=&busca=&pagina=&tamanho=` | Lista com nome do aluno e do plano; busca por nome do aluno (`%` e `_` são literais). |
+| POST | `/api/v1/matriculas` | `{alunoId, planoId, dataInicio, valor?}` → 201 com o detalhe. 409 `ALUNO_NAO_ATIVO`, `PLANO_NAO_ATIVO`, `MATRICULA_JA_EXISTE`; 400 se `dataInicio` fora de hoje ± 30 dias. Auditado. |
+| GET | `/api/v1/matriculas/{id}` | Detalhe: aluno, plano, valor, vigência, status, motivo, `inadimplente`, períodos e cobranças. |
+| GET | `/api/v1/alunos/{id}/matricula` | Matrícula não cancelada do aluno (404 se não houver). |
+| POST | `/api/v1/matriculas/{id}/renovar` | Gera já a cobrança do próximo período. 409 `MATRICULA_NAO_ATIVA`, `COBRANCA_EM_ABERTO`. Auditado. |
+| POST | `/api/v1/matriculas/{id}/suspender` | `{motivo}` — só de ATIVA (409 `MATRICULA_NAO_ATIVA`). Auditado. |
+| POST | `/api/v1/matriculas/{id}/reativar` | Datas após a suspensão andam os dias suspensos. 409 `MATRICULA_NAO_SUSPENSA`. Auditado. |
+| POST | `/api/v1/matriculas/{id}/cancelar` | `{motivo}` — pendentes canceladas, atrasadas preservadas. 409 `MATRICULA_JA_CANCELADA`. Auditado. |
+| POST | `/api/v1/matriculas/{id}/abonar` | `{ateCobrancaId, motivo}` — abona em ordem até a cobrança indicada. Auditado (uma linha). |
+| GET | `/api/v1/cobrancas?status=&vencimentoDe=&vencimentoAte=&alunoId=&pagina=&tamanho=` | Ordenada por vencimento, com `alunoNome`. |
+| POST | `/api/v1/cobrancas/{id}/pagamento` | `{dataPagamento, forma, observacoes?}` — valor integral; data não futura. 409 `QUITAR_MAIS_ANTIGA_PRIMEIRO`, `COBRANCA_NAO_EM_ABERTO`, `CONFLITO_DE_ATUALIZACAO`. Auditado. |
+| POST | `/api/v1/cobrancas/{id}/cancelar` | `{motivo}` — abono: concede o período sem contar como recebido. Auditado. |
+| GET | `/api/v1/inadimplencia?busca=&pagina=&tamanho=` | Por aluno: total e quantidade em atraso, vencimento mais antigo, dias de atraso, matrícula atual. |
+| POST | `/api/v1/dev/rotina-diaria` | **Só no perfil `dev`:** executa a rotina diária agora (data real). |
 
 ## Rotas do aluno (`X-Perfil: ALUNO`)
 

@@ -1,6 +1,8 @@
 package com.locgym.aluno.dominio;
 
 import com.locgym.compartilhado.paginacao.Pagina;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,6 +13,8 @@ public interface AlunoRepositorio {
     Pagina<Aluno> buscar(String buscaOuNulo, StatusAluno statusOuNulo, int pagina, int tamanho);
 
     Optional<Aluno> porId(UUID id);
+
+    Map<UUID, String> nomes(Collection<UUID> ids);
 
     Optional<Aluno> porUsuario(UUID usuarioId);
 

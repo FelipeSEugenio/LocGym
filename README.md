@@ -1,11 +1,10 @@
 # LocGym
 
-[![CI](https://github.com/OWNER/locgym/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/locgym/actions/workflows/ci.yml)
-<!-- Substitua OWNER/locgym pelo repositório no GitHub depois de publicá-lo. -->
+[![CI](https://github.com/FelipeSEugenio/LocGym/actions/workflows/ci.yml/badge.svg)](https://github.com/FelipeSEugenio/LocGym/actions/workflows/ci.yml)
 
 Sistema web **multi-tenant** de gestão para academias de Jiu-Jitsu: alunos, planos, matrículas com cobrança recorrente, inadimplência, horários, check-in por QR Code e relatórios — cada academia com seus dados totalmente isolados.
 
-> **Estado:** Fases 1 (Fundação) e 2 (Identidade e cadastros) concluídas — login seguro, isolamento entre academias na aplicação e no banco (RLS), auditoria e cadastros de academias, administradores, alunos, professores e planos. Próxima: matrículas e pagamentos — veja o [roadmap](docs/08-roadmap.md).
+> **Estado:** Fases 1 (Fundação), 2 (Identidade e cadastros) e 3 (Matrículas e pagamentos) concluídas — login seguro, isolamento entre academias na aplicação e no banco (RLS), auditoria, cadastros, matrículas com cobrança recorrente, registro de pagamentos, inadimplência e rotina diária multi-tenant publicando eventos no Kafka. Próxima: frequência e check-in por QR Code — veja o [roadmap](docs/08-roadmap.md).
 
 ## Stack
 
@@ -51,7 +50,8 @@ docker compose up -d --build --wait
 
 1. Abra http://localhost:4200 e clique em **Criar minha academia** — você cria sua conta e a primeira academia e já entra no painel.
 2. No painel, cadastre planos, professores e alunos. Cada aluno recebe uma senha inicial e troca no primeiro acesso.
-3. Para ver o portal do aluno, saia e entre com o e-mail e a senha inicial do aluno.
+3. Em **Matrículas → Nova matrícula**, matricule um aluno num plano e registre o pagamento da primeira cobrança: a matrícula fica ATIVA. **Cobranças** e **Inadimplência** mostram a situação financeira. Para ver a rotina diária agir na hora (perfil `dev`), chame `POST /api/v1/dev/rotina-diaria` com o token de um admin.
+4. Para ver o portal do aluno, saia e entre com o e-mail e a senha inicial do aluno.
 
 | Variável (`.env`) | Para quê |
 |---|---|

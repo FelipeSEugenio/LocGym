@@ -1,5 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CamposAcademia, formularioAcademia } from '../../../componentes/campos-academia/campos-academia';
@@ -11,11 +13,20 @@ import { DadosAcademia } from '../../../core/auth/modelos';
 
 @Component({
   selector: 'app-academia',
-  imports: [ReactiveFormsModule, MatButtonModule, CamposAcademia],
+  imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, CamposAcademia],
   template: `
     <h2>Dados da academia</h2>
     <form [formGroup]="form" (ngSubmit)="salvar()" class="formulario">
       <app-campos-academia [grupo]="form" />
+      <h3>Cobrança recorrente</h3>
+      <div class="grade" [formGroup]="parametros">
+        <mat-form-field><mat-label>Gerar cobrança com antecedência de (dias)</mat-label>
+          <input matInput type="number" min="1" max="30" formControlName="diasAntecedenciaCobranca" />
+          <mat-error>De 1 a 30 dias</mat-error></mat-form-field>
+        <mat-form-field><mat-label>Carência até vencer a matrícula (dias)</mat-label>
+          <input matInput type="number" min="0" max="60" formControlName="diasCarencia" />
+          <mat-error>De 0 a 60 dias</mat-error></mat-form-field>
+      </div>
       @if (erro()) { <p class="erro" role="alert">{{ erro() }}</p> }
       <div class="acoes">
         <button mat-flat-button type="submit">Salvar</button>
@@ -34,6 +45,10 @@ export class AcademiaPagina {
   private readonly auth = inject(AuthService);
   private readonly avisos = inject(MatSnackBar);
   readonly form = formularioAcademia(inject(FormBuilder));
+  readonly parametros = inject(FormBuilder).nonNullable.group({
+    diasAntecedenciaCobranca: [7, [Validators.required, Validators.min(1), Validators.max(30)]],
+    diasCarencia: [10, [Validators.required, Validators.min(0), Validators.max(60)]],
+  });
   readonly academia = signal<Academia | null>(null);
   readonly erro = signal<string | null>(null);
 
@@ -41,15 +56,19 @@ export class AcademiaPagina {
     this.api.ativa().subscribe((a) => {
       this.academia.set(a);
       this.form.patchValue(a);
+      this.parametros.patchValue(a);
     });
   }
 
   salvar(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.parametros.invalid) {
       this.form.markAllAsTouched();
+      this.parametros.markAllAsTouched();
       return;
     }
-    this.api.atualizar(this.form.getRawValue() as DadosAcademia).subscribe({
+    const p = this.parametros.getRawValue();
+    this.api.atualizar({ ...(this.form.getRawValue() as DadosAcademia), diasAntecedenciaCobranca: Number(p.diasAntecedenciaCobranca),
+      diasCarencia: Number(p.diasCarencia) }).subscribe({
       next: (a) => {
         this.academia.set(a);
         this.erro.set(null);

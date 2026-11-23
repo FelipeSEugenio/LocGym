@@ -28,4 +28,12 @@ interface AlunoJpaDados extends JpaRepository<AlunoJpa, UUID> {
     boolean existsByCpf(String cpf);
 
     boolean existsByCpfAndIdNot(String cpf, UUID id);
+
+    @org.springframework.data.jpa.repository.Query("select a.id as id, a.nome as nome from AlunoJpa a where a.id in :ids")
+    java.util.List<IdNome> nomesPorIds(java.util.Collection<UUID> ids);
+
+    interface IdNome {
+        UUID getId();
+        String getNome();
+    }
 }
