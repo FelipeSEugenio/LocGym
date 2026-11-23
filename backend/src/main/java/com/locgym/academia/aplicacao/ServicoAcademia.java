@@ -1,5 +1,6 @@
 package com.locgym.academia.aplicacao;
 
+import com.locgym.academia.ParametrosCobranca;
 import com.locgym.academia.dominio.Academia;
 import com.locgym.academia.dominio.DadosDaAcademia;
 import com.locgym.academia.dominio.Portas.AcademiaRepositorio;
@@ -57,13 +58,19 @@ public class ServicoAcademia implements CriadorDeAcademia {
         return academias.porId(id).orElseThrow(() -> new NaoEncontradoException("Academia não encontrada"));
     }
 
+    /** {@code parametrosOuNulo} nulo mantém os parâmetros de cobrança atuais. */
     @Transactional
-    public Academia atualizar(DadosDaAcademia dados) {
+    public Academia atualizar(DadosDaAcademia dados, ParametrosCobranca parametrosOuNulo) {
         Academia academia = ativa();
         if (academias.cnpjEmUso(dados.cnpj(), academia.id())) {
             throw new RegraVioladaException("CNPJ_JA_CADASTRADO", "CNPJ já cadastrado");
         }
         academia.atualizar(dados);
+        ParametrosCobranca anteriores = academia.parametrosCobranca();
+        if (parametrosOuNulo != null && academia.alterarParametrosCobranca(parametrosOuNulo)) {
+            auditoria.registrar(AcaoAuditada.PARAMETROS_COBRANCA_ALTERADOS, "academia", academia.id(),
+                    anteriores, parametrosOuNulo);
+        }
         academias.atualizar(academia);
         return academia;
     }
