@@ -36,19 +36,26 @@
 ## RF05 — Planos
 - Nome, descrição, valor, periodicidade (MENSAL=1, TRIMESTRAL=3, SEMESTRAL=6, ANUAL=12 meses), status.
 
-## RF06 — Matrículas e cobrança recorrente
-- No máximo uma matrícula não cancelada por aluno por academia; o valor é copiado do plano.
-- Criar a matrícula gera a primeira cobrança (vencimento = data de início).
-- **Cobrança recorrente:** uma cobrança por período (sem parcelamento), gerada **7 dias antes** do vencimento (configurável). Pagar estende a vigência por mais um período.
-- Status: **PENDENTE** (primeira cobrança não paga) → **ATIVA** → **VENCIDA** (cobrança atrasada há mais de **10 dias**, carência configurável); pagar as pendências volta a ATIVA a partir do vencimento original.
-- **SUSPENSA:** pausa cobranças e bloqueia check-in; ao reativar, o vencimento é estendido pelos dias suspensos.
-- **CANCELADA:** terminal; cobranças pendentes são canceladas, **cobranças atrasadas são preservadas** como dívida.
+## RF06 — Matrículas e cobrança recorrente ✅ Fase 3
+- No máximo uma matrícula não cancelada por aluno por academia (garantido por índice único; duas tentativas simultâneas → uma 201 e uma 409). Exige aluno e plano ATIVOS.
+- Data de início entre hoje − 30 e hoje + 30 dias. O valor é copiado do plano (o admin pode dar desconto **só na criação**); mudar o preço ou inativar o plano depois não afeta a matrícula.
+- Criar a matrícula gera a primeira cobrança (vencimento = data de início). Paga antes do início, a matrícula fica ATIVA e mostra "Começa em dd/mm".
+- **Cobrança recorrente:** uma cobrança por período (sem parcelamento), gerada **7 dias antes** do vencimento (antecedência de 1 a 30 dias, configurável por academia). Pagar — ou abonar — estende a vigência por mais um período, na mesma transação.
+- **Calendário com dia-âncora:** cada período termina no mesmo dia do mês do início, limitado ao fim do mês. Ex.: início 31/01 → 28/02 → 31/03 → 30/04.
+- **Quitação em ordem:** só a cobrança em aberto mais antiga pode ser paga ou abonada ("Quite primeiro a cobrança de dd/mm/aaaa").
+- Status: **PENDENTE** (primeira cobrança não paga; nunca vence) → **ATIVA** → **VENCIDA** (cobrança atrasada há mais de **10 dias**; carência de 0 a 60, configurável). Volta a ATIVA quando não resta cobrança atrasada **e** a vigência cobre o dia de hoje.
+- **Aluno que volta depois de meses:** ao quitar a cobrança atrasada, o sistema gera na hora as cobranças de todos os meses parados (já atrasadas). O admin cobra ou **abona em lote** ("Abonar até aqui"). Ex.: vencida desde 10/08, paga em 15/11 → nascem 10/09, 10/10 e 10/11; abonando 09 e 10 e pagando 11, volta a ATIVA até 10/12.
+- **Renovar** (manual): gera já a cobrança do próximo período, mesmo fora da antecedência.
+- **SUSPENSA** (só de ATIVA, com motivo): não gera cobranças, não atrasa nem vence. **O tempo para na data da suspensão** — na reativação, toda data posterior a ela (vigência, períodos, cobranças) anda os dias suspensos; as anteriores ficam. Cobranças podem ser pagas durante a suspensão.
+- **CANCELADA** (com motivo): terminal; cobranças pendentes são canceladas, **cobranças atrasadas são preservadas** como dívida. Pagar essa dívida não altera a matrícula.
+- Status do aluno e status da matrícula são independentes (aluno INATIVO continua sendo cobrado).
 
-## RF07 — Pagamentos e inadimplência
-- Aluno, academia, matrícula, valor, vencimento, data de pagamento, forma (dinheiro, PIX, crédito, débito, transferência), status (PENDENTE/PAGO/ATRASADO/CANCELADO), observações.
-- Registro manual pelo admin, sempre do valor integral.
-- Job diário (fuso `America/Sao_Paulo`): gera cobranças, marca ATRASADO, marca matrículas VENCIDAS. Idempotente.
-- **Inadimplente** = tem ao menos um pagamento ATRASADO (calculado, não armazenado).
+## RF07 — Pagamentos e inadimplência ✅ Fase 3
+- Aluno, academia, matrícula, valor, vencimento, período, data de pagamento, forma (dinheiro, PIX, crédito, débito, transferência), status (PENDENTE/PAGO/ATRASADO/CANCELADO), observações, motivo do cancelamento.
+- Registro manual pelo admin, sempre do valor integral; data do pagamento não pode ser futura (pagamento antecipado é aceito). Pagamento simultâneo da mesma cobrança → um 200 e um 409.
+- **Abono:** cancelar uma cobrança com motivo concede o período (estende a vigência) sem contar como recebido.
+- **Rotina diária** às 00:05 de São Paulo, em uma instância por vez (ShedLock), academia por academia: gera cobranças (inclusive períodos que faltam), marca ATRASADO no dia seguinte ao vencimento (exceto matrícula suspensa), vence matrículas além da carência. Idempotente; falha numa academia não para as outras. Academias inativas são ignoradas.
+- **Inadimplente** = tem ao menos uma cobrança ATRASADA, em qualquer matrícula (calculado, não armazenado). Tela de inadimplência ordenada pelo atraso mais antigo.
 
 ## RF08 — Horários e aulas
 - Horário: professor, dia da semana, início, término, tipo de aula, status.

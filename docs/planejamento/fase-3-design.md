@@ -84,8 +84,8 @@ CHECKs para todos os enums; `data_pagamento` obrigatória sse `status = 'PAGO'`;
 
 ### 6.2 Calendário (sem "deriva" de mês)
 - Meses por periodicidade: MENSAL 1, TRIMESTRAL 3, SEMESTRAL 6, ANUAL 12.
-- O n-ésimo limite de período é `data_base.plusMonths(n × meses)` — sempre calculado a partir da âncora, nunca somando mês sobre mês. Ex.: início 31/01 mensal → 28/02 (ou 29), **31/03**, 30/04, 31/05…
-- Suspensão desloca a âncora (`data_base += dias suspensos`), ver §6.5.
+- Cada período termina `meses` depois do início, no **dia-âncora** (dia do mês de `data_base`), limitado ao último dia do mês — nunca somando mês sobre mês. Ex.: início 31/01 mensal → 28/02 (ou 29), **31/03**, 30/04, 31/05… *(Ajustado na implementação — ver ADR-017.)*
+- Na reativação, a âncora passa a ser o primeiro limite de período após a suspensão, deslocado (§6.5).
 
 ### 6.3 Cobrança recorrente e vigência
 - **Pagar** uma cobrança (`registrar pagamento`) ou **abonar** (cancelar com motivo, §6.6) dispara `CobrancaQuitada` → `matricula`:
@@ -115,7 +115,7 @@ Execução: `@Scheduled(cron = "0 5 0 * * *", zone = "America/Sao_Paulo")` com *
 - `POST /matriculas/{id}/suspender {motivo}` — só de **ATIVA**. `suspensa_desde = hoje`. Evento `matricula.suspensa`. Auditado.
 - Durante a suspensão: não gera cobranças, não marca atrasos, não vence. Cobranças já ATRASADAS antes da suspensão continuam devidas (aluno segue inadimplente).
 - Cobranças de matrícula SUSPENSA **podem** ser pagas ou abonadas (a dívida pode ser quitada a qualquer momento): a vigência avança normalmente, mas o status continua SUSPENSA e nenhuma cobrança nova é gerada. *(Decisão minha.)*
-- `POST /matriculas/{id}/reativar` — `dias = hoje − suspensa_desde`; `data_base += dias`; `vigente_ate += dias`; cobrança PENDENTE da matrícula, se houver, tem `vencimento`, `periodo_inicio` e `periodo_fim` deslocados em `dias`; registros de `matricula_periodo` com `inicio ≥ suspensa_desde` também são deslocados, para o histórico não ter buraco. Volta a **ATIVA**; se já houver cobrança atrasada além da carência, o job a levará a VENCIDA. Evento `matricula.reativada`. Auditado.
+- `POST /matriculas/{id}/reativar` — `dias = hoje − suspensa_desde`. **O tempo para em `suspensa_desde`:** toda data posterior a ela — `vigente_ate`, inícios e fins de período (`matricula_periodo`) e de cobrança, e o vencimento de cobrança PENDENTE — anda `dias`; as anteriores ficam. Nova `data_base` = primeiro limite de período após a suspensão + `dias`. *(Corrigido na implementação: a versão anterior — deslocar sempre âncora e vigência — quebrava a sequência de quitação quando havia cobrança atrasada ou vigência encerrada antes da suspensão. Ver ADR-018.)* Volta a **ATIVA**; se já houver cobrança atrasada além da carência, o job a levará a VENCIDA. Evento `matricula.reativada`. Auditado.
 
 ### 6.6 Cancelamentos
 - **Cancelar matrícula** `POST /matriculas/{id}/cancelar {motivo}` — de qualquer status exceto CANCELADA; terminal. Cobranças **PENDENTES** → CANCELADO (motivo "Matrícula cancelada", sem estender vigência); **ATRASADAS preservadas** como dívida (regra aprovada). Evento `matricula.cancelada`. Auditado. O aluno pode então receber nova matrícula.

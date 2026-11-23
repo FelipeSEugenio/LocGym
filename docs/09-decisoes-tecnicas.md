@@ -26,7 +26,7 @@ Formato: contexto → decisão → consequências. Status entre parênteses.
 **Decisão:** `usuario` (e-mail + senha) é global; cada academia tem seu próprio registro de aluno, com CPF único por academia. Perfis derivam dos vínculos; a mesma pessoa pode ser admin e aluno.
 **Consequências:** isolamento total dos dados cadastrais; um admin nunca descobre que um e-mail ou CPF existe em outra academia; dados da pessoa podem divergir entre academias (aceito).
 
-## ADR-006 — Cobrança recorrente (aceita, Fase 3)
+## ADR-006 — Cobrança recorrente (aceita, implementada na Fase 3)
 **Decisão:** a matrícula vale até ser cancelada; o job diário gera a cobrança do próximo período 7 dias antes do vencimento; pagar estende a vigência; após 10 dias de atraso a matrícula fica VENCIDA e o check-in é bloqueado. Uma cobrança por período, sem parcelamento nem pagamento parcial.
 **Consequências:** o admin não precisa "renovar" ninguém manualmente; inadimplência surge automaticamente.
 
@@ -34,7 +34,7 @@ Formato: contexto → decisão → consequências. Status entre parênteses.
 **Decisão:** o QR do aluno carrega um token HMAC que expira e é renovado a cada 30 s; a leitura acontece na tela "Recepção" do painel admin.
 **Consequências:** captura de tela não serve para check-in de terceiros; a câmera do navegador exige HTTPS fora de `localhost` (relevante para a futura demo pública).
 
-## ADR-008 — Inadimplência derivada (aceita, Fase 3)
+## ADR-008 — Inadimplência derivada (aceita, implementada na Fase 3)
 **Decisão:** inadimplente = possui pagamento ATRASADO; calculado por consulta, nunca armazenado.
 **Consequências:** sem flag para dessincronizar; consultas de relatório precisam de índice em `(academia_id, status)` de pagamento.
 
@@ -61,3 +61,31 @@ Spring Boot 4.2, Spring Modulith 2.2, Java 21, PostgreSQL 17, Apache Kafka 4.3 (
 ## ADR-014 — Contexto como par (academia, perfil) em headers (aceita, Fase 2)
 **Decisão:** `X-Academia-Id` + `X-Perfil` em toda rota de tenant, porque a mesma pessoa pode ser ADMIN e ALUNO na mesma academia. O token não carrega vínculos.
 **Consequências:** o frontend persiste o par escolhido; trocar de academia não exige novo login.
+
+## ADR-015 — Rotina diária multi-tenant sem contornar o RLS (aceita, Fase 3)
+**Contexto:** a rotina diária roda sem usuário logado, e a aplicação conecta como `locgym_app`, que não ignora RLS.
+**Decisão:** percorrer as academias ativas (tabela global) e processar cada uma numa transação própria, com o contexto daquela academia (`Perfil.SISTEMA`). ShedLock garante uma instância por vez; a rotina é idempotente.
+**Alternativas descartadas:** papel de banco com `BYPASSRLS` só para o job (abre caminho de vazamento); atualizações em massa por função SQL (regra de negócio fora do domínio e dos testes).
+**Consequências:** um pouco mais lenta (irrelevante no volume); falha numa academia não afeta as outras; os mesmos casos de uso e eventos das requisições.
+
+## ADR-016 — Quitação síncrona na mesma transação (aceita, Fase 3)
+**Decisão:** o pagamento publica um evento Spring síncrono (`CobrancaQuitada`) que o módulo `matricula` trata antes do commit; Kafka só para fora.
+**Alternativa descartada:** `matricula` consumir `pagamento.registrado` do Kafka — vigência atrasada e, com falha do consumidor, aluno pago aparecendo vencido.
+**Consequências:** consistência imediata; dependência de módulos `matricula → pagamento` sem ciclo.
+
+## ADR-017 — Calendário com dia-âncora (aceita, Fase 3)
+**Decisão:** cada período termina `meses` depois do início, no dia do mês da âncora (`data_base`), limitado ao fim do mês — nunca somando mês sobre mês.
+**Consequências:** 31/01 → 28/02 → 31/03, sem "encolher" para dia 28.
+
+## ADR-018 — Suspensão "para o tempo" (aceita, Fase 3)
+**Contexto:** o design previa deslocar âncora e vigência na reativação; com cobrança atrasada ou vigência encerrada antes da suspensão, isso quebrava a sequência dos períodos e a quitação seguinte falhava.
+**Decisão:** na reativação, toda data **posterior** ao início da suspensão (vigência, inícios/fins de período e de cobrança; vencimento só de cobrança pendente) anda os dias suspensos; as anteriores ficam. A nova âncora é o primeiro limite de período após a suspensão, deslocado.
+**Consequências:** uma regra única para todos os casos; a dívida anterior à suspensão continua vencida.
+
+## ADR-019 — Abono estende a vigência e recuperação de períodos parados (aceita, Fase 3)
+**Decisão:** abonar (cancelar com motivo) uma cobrança concede o período sem contar como recebido. Quando a quitação deixa a vigência no passado, o sistema gera na hora as cobranças de todos os períodos que faltam; o admin cobra ou abona em lote. A volta a ATIVA exige nenhuma atrasada **e** vigência cobrindo hoje.
+**Consequências:** mantém a regra aprovada de "vigência a partir do vencimento original", com decisão caso a caso da academia.
+
+## ADR-020 — Data de negócio em America/Sao_Paulo (aceita, Fase 3)
+**Decisão:** `Calendario.hoje()` converte o relógio do sistema para São Paulo; regras de vencimento nunca usam a data UTC nem `LocalDate.now()`. Nos testes, `CalendarioDeTeste` controla só a data de negócio — JWT, outbox e auditoria seguem no relógio real.
+**Consequências:** nada vence "um dia antes" entre 21h e meia-noite; testes de datas não quebram tokens.

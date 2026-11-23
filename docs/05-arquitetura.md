@@ -23,7 +23,8 @@ Um único deployable dividido em módulos de negócio verificados pelo **Spring 
 | `compartilhado` | Infra técnica aberta a todos: eventos/outbox, tratamento de erros | ✅ 1 |
 | `identidade` | Usuários, login, JWT, refresh, vínculos, filtro de contexto | ✅ 2 |
 | `academia`, `aluno`, `professor`, `plano` | Cadastros | ✅ 2 |
-| `matricula`, `pagamento` | Cobrança recorrente, inadimplência, job diário | 3 |
+| `pagamento` | Cobranças, registro de pagamento, abono | ✅ 3 |
+| `matricula` | Matrículas, vigência, rotina diária, inadimplência | ✅ 3 |
 | `agenda`, `frequencia` | Horários, aulas, check-in | 4 |
 | `relatorio`, `notificacao` | Indicadores; consumo de eventos | 5 |
 
@@ -38,6 +39,21 @@ com.locgym.<modulo>
 ```
 
 Regras verificadas por ArchUnit: `dominio` não depende de framework nem de outras camadas; `aplicacao` não depende de `infraestrutura` nem de `web`. Módulos conversam por API pública ou eventos — nunca pelos repositórios uns dos outros.
+
+### Matrícula × pagamento (Fase 3)
+
+- Dependência única `matricula → pagamento` (API pública `pagamento.Cobrancas`); `ApplicationModules.verify()` garante que não há ciclo.
+- A volta (pagamento → vigência) é um evento Spring **síncrono** (`CobrancaQuitada`) tratado por `matricula` **na mesma transação**: o aluno que pagou nunca aparece vencido; se a extensão da vigência falhar, o pagamento é desfeito. O Kafka recebe `pagamento.registrado`/`matricula.renovada` só para fora (notificações, relatórios).
+- A cobrança é lida com `SELECT … FOR UPDATE` na quitação: pagamentos simultâneos da mesma cobrança se enfileiram (um 200, um 409).
+- Inadimplência e listagem de matrículas são **consultas de leitura** (SQL juntando pagamento, aluno, plano), sob RLS.
+
+### Rotina diária multi-tenant
+
+`AgendadorRotinaDiaria` (`@Scheduled` 00:05 America/Sao_Paulo + ShedLock) chama `RotinaDiaria`, que percorre as academias ATIVAS e processa **cada uma numa transação própria com o contexto daquela academia** (`ContextoTenant.sistema`) — o RLS continua valendo; a aplicação nunca usa um papel que ignore RLS. Falha numa academia é registrada (log + métrica `locgym.rotina_diaria.falhas{academia}`) e não impede as demais. No perfil `dev`, `POST /api/v1/dev/rotina-diaria` executa a rotina na hora.
+
+### Data de negócio
+
+`Calendario.hoje()` = data em **America/Sao_Paulo**; todas as regras de vencimento usam essa data (nunca a data UTC). Nos testes, a data de negócio é controlada por `CalendarioDeTeste`, sem mexer no relógio técnico (JWT, outbox, auditoria).
 
 ## Eventos
 

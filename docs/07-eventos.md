@@ -67,17 +67,20 @@ Chave da mensagem: `academia_id` (ou `evento_id`, se o evento não tiver academi
 
 **Formato do payload armazenado:** a coluna `outbox_evento.payload` é `jsonb`. O PostgreSQL guarda `jsonb` em forma binária normalizada: **espaços em branco são descartados e a ordem das chaves pode mudar** (chaves duplicadas também são reduzidas à última). Por isso a mensagem publicada no Kafka pode não ser byte a byte igual ao JSON serializado pela aplicação, embora seja semanticamente equivalente. Consumidores devem interpretar o envelope como JSON (por nome de campo) — nunca comparar a string bruta, depender da ordem das chaves ou calcular hash/assinatura sobre o texto da mensagem.
 
-## Catálogo de tópicos (planejado)
+## Catálogo de tópicos
 
-| Tópico | Produtor | Consumidores previstos | Fase |
-|---|---|---|---|
-| `matricula.criada` | matricula | notificacao, relatorio | 3 |
-| `matricula.renovada` | matricula | notificacao (aviso de renovação) | 3 |
-| `matricula.vencida` | matricula (job diário) | notificacao | 3 |
-| `matricula.suspensa` | matricula | notificacao | 3 |
-| `matricula.reativada` | matricula | notificacao | 3 |
-| `matricula.cancelada` | matricula | notificacao, relatorio | 3 |
-| `pagamento.gerado` | pagamento (job diário) | notificacao (aviso de vencimento) | 3 |
-| `pagamento.registrado` | pagamento | matricula (estende vigência), notificacao | 3 |
-| `pagamento.atrasado` | pagamento (job diário) | notificacao (atraso/inadimplência) | 3 |
+Os tópicos da Fase 3 são criados na subida (`NewTopic`, 3 partições) pelos módulos donos. `dados` traz só ids, valores e datas — **nunca CPF, e-mail ou nome**. Nenhum consumidor ainda (notificações na Fase 6). A extensão da vigência após um pagamento **não** passa pelo Kafka: acontece na mesma transação (ver [05 — Arquitetura](05-arquitetura.md)).
+
+| Tópico | Produtor | `dados` | Consumidores previstos | Fase |
+|---|---|---|---|---|
+| `matricula.criada` | matricula | matriculaId, alunoId, planoId, valor, dataInicio | notificacao, relatorio | ✅ 3 |
+| `matricula.renovada` | matricula (a cada quitação após a primeira) | matriculaId, alunoId, vigenteAte | notificacao (aviso de renovação) | ✅ 3 |
+| `matricula.vencida` | matricula (rotina diária) | matriculaId, alunoId, vigenteAte | notificacao | ✅ 3 |
+| `matricula.suspensa` | matricula | matriculaId, alunoId, motivo | notificacao | ✅ 3 |
+| `matricula.reativada` | matricula | matriculaId, alunoId, dias, vigenteAte | notificacao | ✅ 3 |
+| `matricula.cancelada` | matricula | matriculaId, alunoId, motivo | notificacao, relatorio | ✅ 3 |
+| `pagamento.gerado` | pagamento | cobrancaId, matriculaId, alunoId, valor, vencimento | notificacao (aviso de vencimento) | ✅ 3 |
+| `pagamento.registrado` | pagamento | cobrancaId, matriculaId, alunoId, valor, dataPagamento, forma | notificacao, relatorio | ✅ 3 |
+| `pagamento.atrasado` | pagamento (rotina diária, ou cobrança que já nasce vencida) | cobrancaId, matriculaId, alunoId, valor, vencimento | notificacao (atraso/inadimplência) | ✅ 3 |
+| `pagamento.cancelado` | pagamento (abono ou cancelamento da matrícula) | cobrancaId, matriculaId, alunoId, valor, motivo | notificacao, relatorio | ✅ 3 |
 | `checkin.registrado` | frequencia | notificacao (confirmação), relatorio | 4 |
