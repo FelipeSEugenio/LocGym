@@ -424,4 +424,36 @@ class MatriculasIT {
                 "dataInicio", HOJE.toString());
         assertThat(b.post("/api/v1/matriculas", corpo).status()).isEqualTo(404);
     }
+
+    @Test
+    void reativarComDuasCobrancasFuturasNaoColide() {
+        String id = criarOk(HOJE);                                               // 15/11
+        pagarMaisAntiga(id);                                                     // vigente 15/12
+        ctx.post("/api/v1/matriculas/" + id + "/renovar", Map.of());             // 15/12
+        pagarMaisAntiga(id);                                                     // vigente 15/01
+        ctx.post("/api/v1/matriculas/" + id + "/renovar", Map.of());             // 15/01 pendente
+        ctx.post("/api/v1/matriculas/" + id + "/suspender", Map.of("motivo", "Viagem"));
+        relogio.avancarDias(31);                                                 // = distância 15/12 → 15/01
+
+        var r = ctx.post("/api/v1/matriculas/" + id + "/reativar", Map.of());
+
+        assertThat(r.status()).as(r.corpo().toString()).isEqualTo(200);
+        assertThat(r.texto("vigenteAte")).isEqualTo("2027-02-15");
+        assertThat(cobrancas(id, null)).extracting(c -> c.get("periodoInicio").asString())
+                .containsExactly("2026-11-15", "2027-01-15", "2027-02-15");
+    }
+
+    @Test
+    void dataPagamentoMuitoAnteriorAoInicioDaMatricula400() {
+        String id = criarOk(HOJE);
+        String cobranca = cobrancas(id, null).get(0).get("id").asString();
+
+        var r = ctx.post("/api/v1/cobrancas/" + cobranca + "/pagamento", Map.of("dataPagamento", "2001-01-01", "forma", "PIX"));
+
+        assertThat(r.status()).isEqualTo(400);
+        assertThat(r.corpo().get("erros").get(0).get("campo").asString()).isEqualTo("dataPagamento");
+        assertThat(cobrancas(id, "PENDENTE")).hasSize(1);
+        assertThat(ctx.post("/api/v1/cobrancas/" + cobranca + "/pagamento",
+                Map.of("dataPagamento", HOJE.minusDays(30).toString(), "forma", "PIX")).status()).isEqualTo(200);
+    }
 }

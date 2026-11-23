@@ -184,4 +184,13 @@ class CobrancaTest {
         assertThat(StatusCobranca.PAGO.emAberto()).isFalse();
         assertThat(StatusCobranca.CANCELADO.emAberto()).isFalse();
     }
+
+    @Test
+    void deslocarPendenteQueVenceNoDiaDaSuspensao() {
+        Cobranca pendente = nova(LocalDate.of(2026, 12, 1));
+        pendente.deslocar(LocalDate.of(2026, 12, 1), 10);
+
+        assertThat(pendente.vencimento()).isEqualTo(LocalDate.of(2026, 12, 11));
+        assertThat(pendente.status()).isEqualTo(StatusCobranca.PENDENTE);
+    }
 }

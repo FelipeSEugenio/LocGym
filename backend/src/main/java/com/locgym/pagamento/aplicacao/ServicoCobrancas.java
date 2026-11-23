@@ -171,7 +171,11 @@ public class ServicoCobrancas implements Cobrancas {
         if (dias == 0) {
             return;
         }
-        for (Cobranca c : cobrancas.daMatricula(matriculaId)) {
+        // Do período mais tardio para o mais cedo: deslocar em ordem crescente faria uma cobrança cair no início da
+        // seguinte (ainda não deslocada) e violar o índice único (não-deferrable) de período.
+        List<Cobranca> todas = new ArrayList<>(cobrancas.daMatricula(matriculaId));
+        java.util.Collections.reverse(todas);
+        for (Cobranca c : todas) {
             c.deslocar(desde, dias);
             cobrancas.salvar(c);
         }
@@ -229,7 +233,7 @@ public class ServicoCobrancas implements Cobrancas {
     }
 
     private static CobrancaQuitada quitada(Cobranca c, boolean abono) {
-        return new CobrancaQuitada(c.id(), c.matriculaId(), c.periodoInicio(), c.periodoFim(), abono);
+        return new CobrancaQuitada(c.id(), c.matriculaId(), c.periodoInicio(), c.periodoFim(), abono, c.dataPagamento());
     }
 
     private static UUID academia() {

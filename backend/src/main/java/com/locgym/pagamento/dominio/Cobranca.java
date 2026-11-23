@@ -101,7 +101,8 @@ public class Cobranca {
 
     /**
      * Reativação de matrícula suspensa: toda data do período posterior a {@code desde} anda {@code dias}. O
-     * vencimento só anda em cobrança PENDENTE (atrasada continua atrasada; paga/cancelada é histórico).
+     * vencimento só anda em cobrança PENDENTE que vence no dia da suspensão ou depois (atrasada continua atrasada;
+     * paga/cancelada é histórico).
      */
     public void deslocar(LocalDate desde, int dias) {
         if (periodoInicio.isAfter(desde)) {
@@ -110,7 +111,7 @@ public class Cobranca {
         if (periodoFim.isAfter(desde)) {
             periodoFim = periodoFim.plusDays(dias);
         }
-        if (status == StatusCobranca.PENDENTE && vencimento.isAfter(desde)) {
+        if (status == StatusCobranca.PENDENTE && !vencimento.isBefore(desde)) {   // vence no dia da suspensão: não estava atrasada
             vencimento = vencimento.plusDays(dias);
         }
     }

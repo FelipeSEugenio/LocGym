@@ -1,6 +1,7 @@
 package com.locgym.matricula.aplicacao;
 
 import com.locgym.academia.Academias;
+import com.locgym.compartilhado.erros.ValorInvalidoException;
 import com.locgym.compartilhado.eventos.PublicadorEventos;
 import com.locgym.compartilhado.tempo.Calendario;
 import com.locgym.compartilhado.tenancy.TenantContext;
@@ -24,6 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 class QuitacaoListener {
 
+    /** Limite inferior da data de pagamento (barra datas digitadas por engano, ex.: 2001). */
+    static final int LIMITE_PAGAMENTO_ANTES_DO_INICIO = 30;
+
     private final MatriculaRepositorio matriculas;
     private final Cobrancas cobrancas;
     private final RecuperacaoDePeriodos recuperacao;
@@ -46,6 +50,10 @@ class QuitacaoListener {
     void aoQuitar(CobrancaQuitada e) {
         Matricula m = matriculas.porId(e.matriculaId())
                 .orElseThrow(() -> new IllegalStateException("Matrícula da cobrança não encontrada: " + e.matriculaId()));
+        if (e.dataPagamento() != null && e.dataPagamento().isBefore(m.dataInicio().minusDays(LIMITE_PAGAMENTO_ANTES_DO_INICIO))) {
+            throw new ValorInvalidoException("dataPagamento",
+                    "A data do pagamento não pode ser anterior a 30 dias antes do início da matrícula");
+        }
         if (m.status() == StatusMatricula.CANCELADA) {
             return;   // dívida de matrícula cancelada: só quita, não mexe na matrícula
         }
