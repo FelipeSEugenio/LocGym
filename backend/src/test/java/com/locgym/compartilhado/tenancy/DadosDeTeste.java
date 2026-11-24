@@ -80,4 +80,44 @@ public final class DadosDeTeste {
                 """, id, academia, matricula, aluno, inicio, inicio, inicio.plusMonths(1));
         return id;
     }
+
+    public static UUID professor(JdbcTemplate su, UUID academia, String status) {
+        UUID id = UUID.randomUUID();
+        su.update("insert into professor (id, academia_id, nome, status) values (?, ?, ?, ?)",
+                id, academia, "Prof " + id.toString().substring(0, 6), status);
+        return id;
+    }
+
+    /** Horário ATIVO; {@code diaSemana} ISO (1 = segunda). */
+    public static UUID horario(JdbcTemplate su, UUID academia, UUID professor, int diaSemana,
+                               java.time.LocalTime inicio, java.time.LocalTime fim, String tipo) {
+        UUID id = UUID.randomUUID();
+        su.update("""
+                insert into horario (id, academia_id, professor_id, dia_semana, inicio, fim, tipo, status)
+                values (?, ?, ?, ?, ?, ?, ?, 'ATIVO')
+                """, id, academia, professor, diaSemana, inicio, fim, tipo);
+        return id;
+    }
+
+    /** Aula do horário na data, copiando início, fim, professor e tipo. */
+    public static UUID aula(JdbcTemplate su, UUID horario, java.time.LocalDate data) {
+        UUID id = UUID.randomUUID();
+        su.update("""
+                insert into aula (id, academia_id, horario_id, data, inicio, fim, professor_id, tipo)
+                select ?, academia_id, id, ?, inicio, fim, professor_id, tipo from horario where id = ?
+                """, id, data, horario);
+        return id;
+    }
+
+    /** Check-in ATIVO por QR; {@code aula} nula = livre (sem pontualidade). */
+    public static UUID checkin(JdbcTemplate su, UUID academia, UUID aluno, UUID aula, java.time.LocalDate data,
+                               java.time.LocalTime hora) {
+        UUID id = UUID.randomUUID();
+        su.update("""
+                insert into checkin (id, academia_id, aluno_id, aula_id, data, hora, registrado_em, origem,
+                                     pontualidade, status)
+                values (?, ?, ?, ?, ?, ?, now(), 'QR', ?, 'ATIVO')
+                """, id, academia, aluno, aula, data, hora, aula == null ? null : "PONTUAL");
+        return id;
+    }
 }
