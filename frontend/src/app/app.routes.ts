@@ -60,6 +60,8 @@ export const routes: Routes = [
       { path: 'agenda', loadComponent: () => import('./paginas/admin/agenda/agenda-lista').then((m) => m.AgendaLista) },
       { path: 'agenda/novo', loadComponent: () => import('./paginas/admin/agenda/horario-form').then((m) => m.HorarioForm) },
       { path: 'agenda/:id', loadComponent: () => import('./paginas/admin/agenda/horario-form').then((m) => m.HorarioForm) },
+      { path: 'recepcao', loadComponent: () => import('./paginas/admin/recepcao/recepcao').then((m) => m.Recepcao) },
+      { path: 'frequencia', loadComponent: () => import('./paginas/admin/frequencia/frequencia-lista').then((m) => m.FrequenciaLista) },
     ],
   },
   {

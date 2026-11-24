@@ -55,6 +55,8 @@ export class ShellAdmin {
     { rota: 'cobrancas', rotulo: 'Cobranças', icone: 'payments' },
     { rota: 'inadimplencia', rotulo: 'Inadimplência', icone: 'report' },
     { rota: 'agenda', rotulo: 'Agenda', icone: 'calendar_month' },
+    { rota: 'recepcao', rotulo: 'Recepção', icone: 'qr_code_scanner' },
+    { rota: 'frequencia', rotulo: 'Frequência', icone: 'how_to_reg' },
     { rota: 'administradores', rotulo: 'Administradores', icone: 'admin_panel_settings' },
     { rota: 'academia', rotulo: 'Academia', icone: 'store' },
   ];
