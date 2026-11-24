@@ -83,4 +83,6 @@ Os tópicos da Fase 3 são criados na subida (`NewTopic`, 3 partições) pelos m
 | `pagamento.registrado` | pagamento | cobrancaId, matriculaId, alunoId, valor, dataPagamento, forma | notificacao, relatorio | ✅ 3 |
 | `pagamento.atrasado` | pagamento (rotina diária, ou cobrança que já nasce vencida) | cobrancaId, matriculaId, alunoId, valor, vencimento | notificacao (atraso/inadimplência) | ✅ 3 |
 | `pagamento.cancelado` | pagamento (abono ou cancelamento da matrícula) | cobrancaId, matriculaId, alunoId, valor, motivo | notificacao, relatorio | ✅ 3 |
-| `checkin.registrado` | frequencia | notificacao (confirmação), relatorio | 4 |
+| `checkin.registrado` | frequencia (QR e presença manual) | checkinId, alunoId, aulaId?, horarioId?, data, hora, origem, pontualidade? | notificacao (confirmação), relatorio | ✅ 4 |
+| `checkin.corrigido` | frequencia | checkinAntigoId, checkinNovoId, alunoId, aulaId?, horarioId?, data, hora, origem, pontualidade? | relatorio | ✅ 4 |
+| `checkin.excluido` | frequencia | checkinId, alunoId, motivo | relatorio | ✅ 4 |

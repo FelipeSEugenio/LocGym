@@ -5,8 +5,8 @@
 | **1 — Fundação** | Monorepo; backend Spring Boot (health checks, Flyway, outbox → Kafka, regras de arquitetura, Problem Details); frontend Angular (esqueleto admin/aluno); Docker Compose; GitHub Actions; documentação inicial. | ✅ Concluída |
 | **2 — Identidade e cadastros** | Autenticação (JWT + refresh rotativo), vínculos e perfis, multi-tenancy com `@TenantId` + RLS, auditoria; academias, administradores, alunos, professores, planos; login, troca de senha, seletor de academia e painel no frontend. | ✅ Concluída |
 | **3 — Matrículas e pagamentos** | Matrícula, cobrança recorrente com recuperação de meses parados, renovação, suspensão, cancelamento, registro de pagamentos e abono, rotina diária multi-tenant (ShedLock), inadimplência, 10 eventos Kafka; telas de matrículas, cobranças e inadimplência. | ✅ Concluída |
-| **4 — Frequência** | Horários, aulas, QR Code rotativo assinado, tela de recepção, presença manual, correção/exclusão, histórico. Check-in exige aluno ATIVO, matrícula ATIVA e `data_inicio ≤ hoje`. | Próxima |
-| **5 — Portal e relatórios** | Portal do aluno completo, dashboard e relatórios, dados de demonstração, polimento do README. | Planejada |
+| **4 — Frequência** | Horários, aulas, QR Code rotativo assinado, tela de recepção, presença manual, correção/exclusão, histórico. Check-in exige aluno ATIVO, matrícula ATIVA e `data_inicio ≤ hoje`; com várias aulas abertas a recepção escolhe; 3 eventos Kafka; telas Agenda, Recepção, Frequência e "Meu QR Code". | ✅ Concluída |
+| **5 — Portal e relatórios** | Portal do aluno completo, dashboard e relatórios, dados de demonstração, polimento do README. | Próxima |
 | **6 — Evolução** | Notificações e WhatsApp, gateway de pagamento, relatórios avançados, app mobile, **demo pública online** (deploy, HTTPS, Kafka gerenciado, reset de dados de demo). | Futuro |
 
 ## Ideias não adotadas na Fase 3

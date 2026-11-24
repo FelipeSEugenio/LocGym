@@ -34,6 +34,15 @@ class ProfessorRepositorioJpa implements ProfessorRepositorio {
     }
 
     @Override
+    public java.util.Map<UUID, String> nomes(java.util.Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return java.util.Map.of();
+        }
+        return dados.findAllById(java.util.Set.copyOf(ids)).stream().map(ProfessorJpa::paraDominio)
+                .collect(java.util.stream.Collectors.toMap(Professor::id, p -> p.dados().nome()));
+    }
+
+    @Override
     public void salvar(Professor professor) {
         ProfessorJpa entidade = dados.findById(professor.id()).orElseGet(() -> new ProfessorJpa(professor.id()));
         entidade.copiar(professor);

@@ -89,3 +89,15 @@ Spring Boot 4.2, Spring Modulith 2.2, Java 21, PostgreSQL 17, Apache Kafka 4.3 (
 ## ADR-020 — Data de negócio em America/Sao_Paulo (aceita, Fase 3)
 **Decisão:** `Calendario.hoje()` converte o relógio do sistema para São Paulo; regras de vencimento nunca usam a data UTC nem `LocalDate.now()`. Nos testes, `CalendarioDeTeste` controla só a data de negócio — JWT, outbox e auditoria seguem no relógio real.
 **Consequências:** nada vence "um dia antes" entre 21h e meia-noite; testes de datas não quebram tokens.
+
+## ADR-021 — A recepção escolhe a aula quando há mais de uma aberta (aceita, Fase 4)
+**Decisão:** o check-in vai para a única aula aberta; com várias (janelas sobrepostas, kids e adulto juntos), a recepção escolhe antes de ler — sem escolha, 409 `AULA_AMBIGUA` com a lista. Sem aula aberta, check-in livre.
+**Consequências:** um clique a mais só quando há sobreposição; a frequência por horário e professor (relatórios da Fase 5) não registra aula errada. Alternativas descartadas: escolher automaticamente pelo início mais próximo (erra) e proibir sobreposição (não serve a academias reais).
+
+## ADR-022 — Aula como cópia do horário, e "a aula criada manda" (aceita, Fase 4)
+**Decisão:** a aula é criada no primeiro check-in com cópia de início, fim, professor e tipo. Se a aula do dia já existe, sua janela vem da cópia — ela continua aberta mesmo que o horário mude ou seja inativado.
+**Consequências:** alterar a grade nunca reescreve o passado; atrasados ainda entram na aula em andamento. Horário com aulas não pode ser excluído, só inativado.
+
+## ADR-023 — Token do QR: HMAC-SHA256, 60 s, sem estado (aceita, Fase 4)
+**Decisão:** `base64url(payload).base64url(HMAC)` com aluno, academia, emissão e nonce (48 bytes; ~108 caracteres). O portal renova a cada 30 s; a recepção aceita até 60 s (folga de relógio e rede) e recusa emissão mais de 5 s no futuro e token de outra academia. Chave em `CHECKIN_CHAVE_QR` (Base64, ≥ 32 bytes); vazia gera uma temporária a cada subida. O nonce não é guardado: reuso dentro dos 60 s cai na regra de duplicado.
+**Consequências:** captura de tela vale no máximo um minuto; nenhum segredo no navegador; várias instâncias precisam da mesma chave.

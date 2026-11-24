@@ -23,4 +23,9 @@ public class Calendario {
     public LocalDate hoje() {
         return LocalDate.ofInstant(clock.instant(), FUSO);
     }
+
+    /** Data e hora de negócio em São Paulo (check-in, pontualidade). */
+    public java.time.LocalDateTime agora() {
+        return java.time.LocalDateTime.ofInstant(clock.instant(), FUSO);
+    }
 }

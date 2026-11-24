@@ -52,6 +52,7 @@ services:
       DB_APP_USER: ${DB_APP_USER:-locgym_app}
       DB_APP_PASSWORD: ${DB_APP_PASSWORD:-locgym_app}
       JWT_CHAVE_PRIVADA: ${JWT_CHAVE_PRIVADA:-}
+      CHECKIN_CHAVE_QR: ${CHECKIN_CHAVE_QR:-}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_PROFILES_ACTIVE: dev
     ports:

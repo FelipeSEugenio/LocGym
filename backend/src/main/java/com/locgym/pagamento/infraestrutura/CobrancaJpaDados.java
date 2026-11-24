@@ -28,6 +28,9 @@ interface CobrancaJpaDados extends JpaRepository<CobrancaJpa, UUID>, JpaSpecific
     @Query("select min(c.vencimento) from CobrancaJpa c where c.matriculaId = :matriculaId and c.status = 'ATRASADO'")
     Optional<LocalDate> menorVencimentoAtrasado(UUID matriculaId);
 
+    @Query("select min(c.vencimento) from CobrancaJpa c where c.alunoId = :alunoId and c.status = 'ATRASADO'")
+    Optional<LocalDate> menorVencimentoAtrasadoDoAluno(UUID alunoId);
+
     @Query("select max(c.periodoFim) from CobrancaJpa c where c.matriculaId = :matriculaId")
     Optional<LocalDate> maiorFimDePeriodo(UUID matriculaId);
 

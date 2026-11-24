@@ -29,4 +29,10 @@ class ControllerDeContextoDeTeste {
     @PostMapping("/api/v1/teste-contexto")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void escrever() {}
+
+    @GetMapping("/api/v1/teste-regra-com-extras")
+    void regraComExtras() {
+        throw new com.locgym.compartilhado.erros.RegraVioladaException(
+                "X", "m", java.util.Map.of("aulas", java.util.List.of("a")));
+    }
 }

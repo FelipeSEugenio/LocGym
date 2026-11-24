@@ -169,4 +169,29 @@ class AcademiaIT {
         assertThat(r.status()).isEqualTo(400);
         assertThat(r.texto("codigo")).isEqualTo("CONTEXTO_AUSENTE");
     }
+
+    @Test
+    void toleranciaPadraoEEditavel() {
+        var cliente = http.comToken(admin.token()).comContexto(admin.academiaId(), "ADMIN");
+        var atual = cliente.get("/api/v1/academia");
+        assertThat(atual.corpo().get("toleranciaPontualidade").asInt()).isEqualTo(10);
+
+        var dados = new java.util.LinkedHashMap<String, Object>(dadosAcademia(atual.texto("nome")));
+        dados.put("cnpj", atual.texto("cnpj"));
+        dados.put("toleranciaPontualidade", 0);
+        var r = cliente.put("/api/v1/academia", dados);
+
+        assertThat(r.status()).as(r.corpo().toString()).isEqualTo(200);
+        assertThat(cliente.get("/api/v1/academia").corpo().get("toleranciaPontualidade").asInt()).isZero();
+        assertThat(su.jdbc().queryForObject(
+                "select count(*) from auditoria where academia_id = ? and acao = 'TOLERANCIA_PONTUALIDADE_ALTERADA'",
+                Integer.class, admin.academiaId())).isEqualTo(1);
+
+        dados.put("toleranciaPontualidade", 61);
+        assertThat(cliente.put("/api/v1/academia", dados).status()).isEqualTo(400);
+
+        dados.remove("toleranciaPontualidade");
+        assertThat(cliente.put("/api/v1/academia", dados).status()).isEqualTo(200);
+        assertThat(cliente.get("/api/v1/academia").corpo().get("toleranciaPontualidade").asInt()).isZero();
+    }
 }

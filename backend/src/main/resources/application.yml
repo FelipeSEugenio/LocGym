@@ -67,6 +67,9 @@ locgym:
   jwt:
     # Chave RSA (PEM PKCS#8). Vazia: gera uma temporária a cada subida (só para desenvolvimento).
     chave-privada: ${JWT_CHAVE_PRIVADA:}
+  checkin:
+    # Chave HMAC do QR de check-in (Base64, ≥ 32 bytes). Vazia: gera uma temporária a cada subida (só desenvolvimento).
+    chave-qr: ${CHECKIN_CHAVE_QR:}
   outbox:
     relay-habilitado: true
     intervalo-ms: 1000

@@ -31,4 +31,10 @@ class ConsultaAlunos implements Alunos {
     public Map<UUID, String> nomes(Collection<UUID> alunoIds) {
         return alunos.nomes(alunoIds);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<UUID> idDoUsuario(UUID usuarioId) {
+        return alunos.porUsuario(usuarioId).map(a -> a.id());
+    }
 }

@@ -27,6 +27,13 @@ import { DadosAcademia } from '../../../core/auth/modelos';
           <input matInput type="number" min="0" max="60" formControlName="diasCarencia" />
           <mat-error>De 0 a 60 dias</mat-error></mat-form-field>
       </div>
+      <h3>Frequência</h3>
+      <div class="grade" [formGroup]="frequencia">
+        <mat-form-field><mat-label>Tolerância de pontualidade (minutos)</mat-label>
+          <input matInput type="number" min="0" max="60" formControlName="toleranciaPontualidade" />
+          <mat-hint>Check-in até o início da aula mais estes minutos é pontual</mat-hint>
+          <mat-error>De 0 a 60 minutos</mat-error></mat-form-field>
+      </div>
       @if (erro()) { <p class="erro" role="alert">{{ erro() }}</p> }
       <div class="acoes">
         <button mat-flat-button type="submit">Salvar</button>
@@ -49,6 +56,9 @@ export class AcademiaPagina {
     diasAntecedenciaCobranca: [7, [Validators.required, Validators.min(1), Validators.max(30)]],
     diasCarencia: [10, [Validators.required, Validators.min(0), Validators.max(60)]],
   });
+  readonly frequencia = inject(FormBuilder).nonNullable.group({
+    toleranciaPontualidade: [10, [Validators.required, Validators.min(0), Validators.max(60)]],
+  });
   readonly academia = signal<Academia | null>(null);
   readonly erro = signal<string | null>(null);
 
@@ -57,18 +67,21 @@ export class AcademiaPagina {
       this.academia.set(a);
       this.form.patchValue(a);
       this.parametros.patchValue(a);
+      this.frequencia.patchValue(a);
     });
   }
 
   salvar(): void {
-    if (this.form.invalid || this.parametros.invalid) {
+    if (this.form.invalid || this.parametros.invalid || this.frequencia.invalid) {
       this.form.markAllAsTouched();
       this.parametros.markAllAsTouched();
+      this.frequencia.markAllAsTouched();
       return;
     }
     const p = this.parametros.getRawValue();
     this.api.atualizar({ ...(this.form.getRawValue() as DadosAcademia), diasAntecedenciaCobranca: Number(p.diasAntecedenciaCobranca),
-      diasCarencia: Number(p.diasCarencia) }).subscribe({
+      diasCarencia: Number(p.diasCarencia),
+      toleranciaPontualidade: Number(this.frequencia.getRawValue().toleranciaPontualidade) }).subscribe({
       next: (a) => {
         this.academia.set(a);
         this.erro.set(null);

@@ -22,7 +22,9 @@ record DadosAcademiaRequisicao(
         @Min(value = 1, message = "Informe de 1 a 30 dias") @Max(value = 30, message = "Informe de 1 a 30 dias")
         Integer diasAntecedenciaCobranca,
         @Min(value = 0, message = "Informe de 0 a 60 dias") @Max(value = 60, message = "Informe de 0 a 60 dias")
-        Integer diasCarencia) {
+        Integer diasCarencia,
+        @Min(value = 0, message = "Informe de 0 a 60 minutos") @Max(value = 60, message = "Informe de 0 a 60 minutos")
+        Integer toleranciaPontualidade) {
 
     /** Nulo quando a requisição não traz os dois parâmetros (mantém os atuais). */
     ParametrosCobranca parametrosCobranca() {

@@ -133,6 +133,12 @@ public class ServicoCobrancas implements Cobrancas {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<LocalDate> vencimentoAtrasadoMaisAntigoDoAluno(UUID alunoId) {
+        return cobrancas.vencimentoAtrasadoMaisAntigoDoAluno(alunoId);
+    }
+
+    @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public LocalDate inicioDoProximoPeriodoSemCobranca(UUID matriculaId, LocalDate aPartirDe) {
         return cobrancas.maiorFimDePeriodo(matriculaId).filter(fim -> fim.isAfter(aPartirDe)).orElse(aPartirDe);

@@ -86,6 +86,17 @@ public final class Cenarios {
                 UUID.fromString(r.corpo().get("vinculos").get(0).get("academiaId").asString()));
     }
 
+    /**
+     * Aluno cadastrado pelo admin com {@link #dadosAluno} (senha inicial "inicial-123"): entra, troca a senha
+     * obrigatória e devolve o cliente com o contexto ALUNO na academia.
+     */
+    public static ClienteHttp comoAluno(ClienteHttp http, String email, UUID academiaId) {
+        String token = http.post("/api/v1/auth/login", Map.of("email", email, "senha", "inicial-123")).texto("accessToken");
+        String novo = http.comToken(token).post("/api/v1/auth/trocar-senha",
+                Map.of("senhaAtual", "inicial-123", "novaSenha", "minha-senha-1")).texto("accessToken");
+        return http.comToken(novo).comContexto(academiaId, "ALUNO");
+    }
+
     public static ClienteHttp comoAdmin(ClienteHttp http, Admin admin) {
         return http.comToken(admin.token()).comContexto(admin.academiaId(), "ADMIN");
     }

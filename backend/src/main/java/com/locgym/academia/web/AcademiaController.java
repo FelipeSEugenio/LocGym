@@ -42,7 +42,7 @@ class AcademiaController {
 
     @PutMapping("/api/v1/academia")
     AcademiaResposta atualizar(@Valid @RequestBody DadosAcademiaRequisicao req) {
-        return AcademiaResposta.de(servico.atualizar(req.paraDominio(), req.parametrosCobranca()));
+        return AcademiaResposta.de(servico.atualizar(req.paraDominio(), req.parametrosCobranca(), req.toleranciaPontualidade()));
     }
 
     @PatchMapping("/api/v1/academia/status")

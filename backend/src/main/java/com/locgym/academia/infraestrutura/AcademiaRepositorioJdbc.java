@@ -29,7 +29,8 @@ class AcademiaRepositorioJdbc implements AcademiaRepositorio {
                         rs.getString("cidade"), rs.getString("estado"), rs.getString("cep"),
                         rs.getString("telefone"), rs.getString("email")),
                 StatusAcademia.valueOf(rs.getString("status")),
-                new ParametrosCobranca(rs.getInt("dias_antecedencia_cobranca"), rs.getInt("dias_carencia"))),
+                new ParametrosCobranca(rs.getInt("dias_antecedencia_cobranca"), rs.getInt("dias_carencia")),
+                rs.getInt("tolerancia_pontualidade_min")),
                 id).stream().findFirst();
     }
 
@@ -66,10 +67,11 @@ class AcademiaRepositorioJdbc implements AcademiaRepositorio {
         jdbc.update("""
                 update academia set nome = ?, cnpj = ?, endereco = ?, cidade = ?, estado = ?, cep = ?, telefone = ?,
                                     email = ?, status = ?, dias_antecedencia_cobranca = ?, dias_carencia = ?,
+                                    tolerancia_pontualidade_min = ?,
                                     atualizado_em = now()
                  where id = ?
                 """, d.nome(), d.cnpj(), d.endereco(), d.cidade(), d.estado(), d.cep(), d.telefone(), d.email(),
                 a.status().name(), a.parametrosCobranca().diasAntecedencia(), a.parametrosCobranca().diasCarencia(),
-                a.id());
+                a.toleranciaPontualidade(), a.id());
     }
 }

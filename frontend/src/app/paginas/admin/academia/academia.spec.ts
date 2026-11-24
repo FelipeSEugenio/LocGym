@@ -7,6 +7,7 @@ import { AcademiaPagina } from './academia';
 const ACADEMIA = {
   id: 'ac1', nome: 'Academia', cnpj: '11222333000181', endereco: 'Rua', cidade: 'SP', estado: 'SP', cep: '01001000',
   telefone: '11999990000', email: 'a@a.com', status: 'ATIVA' as const, diasAntecedenciaCobranca: 7, diasCarencia: 10,
+  toleranciaPontualidade: 10,
 };
 
 describe('AcademiaPagina', () => {
@@ -32,6 +33,21 @@ describe('AcademiaPagina', () => {
   it('parametrosForaDoLimiteBloqueiamEnvio', () => {
     const { comp, api } = montar();
     comp.parametros.setValue({ diasAntecedenciaCobranca: 31, diasCarencia: 10 });
+    comp.salvar();
+    expect(api.atualizar).not.toHaveBeenCalled();
+  });
+
+  it('enviaToleranciaDePontualidade', () => {
+    const { comp, api } = montar();
+    expect(comp.frequencia.getRawValue()).toEqual({ toleranciaPontualidade: 10 });
+    comp.frequencia.setValue({ toleranciaPontualidade: 0 });
+    comp.salvar();
+    expect(api.atualizar).toHaveBeenCalledWith(expect.objectContaining({ toleranciaPontualidade: 0 }));
+  });
+
+  it('toleranciaForaDoLimiteBloqueiaEnvio', () => {
+    const { comp, api } = montar();
+    comp.frequencia.setValue({ toleranciaPontualidade: 61 });
     comp.salvar();
     expect(api.atualizar).not.toHaveBeenCalled();
   });

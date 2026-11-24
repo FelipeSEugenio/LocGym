@@ -71,5 +71,6 @@ export interface ParametrosCobranca {
 
 export interface Academia extends DadosAcademia, ParametrosCobranca {
   id: string;
+  toleranciaPontualidade: number;
   status: 'ATIVA' | 'INATIVA';
 }

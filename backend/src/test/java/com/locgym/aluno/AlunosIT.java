@@ -42,10 +42,7 @@ class AlunosIT {
 
     /** Aluno recém-criado faz login, troca a senha inicial e recebe um cliente no contexto ALUNO. */
     private ClienteHttp entrarComoAluno(String email) {
-        String token = http.post("/api/v1/auth/login", Map.of("email", email, "senha", "inicial-123")).texto("accessToken");
-        String novo = http.comToken(token).post("/api/v1/auth/trocar-senha",
-                Map.of("senhaAtual", "inicial-123", "novaSenha", "minha-senha-1")).texto("accessToken");
-        return http.comToken(novo).comContexto(admin.academiaId(), "ALUNO");
+        return com.locgym.apoio.Cenarios.comoAluno(http, email, admin.academiaId());
     }
 
     @Test

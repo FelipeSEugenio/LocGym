@@ -44,7 +44,14 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(RegraVioladaException.class)
     public ProblemDetail regraViolada(RegraVioladaException ex) {
-        return comCodigo(HttpStatus.CONFLICT, "Operação não permitida", ex.getMessage(), ex.codigo());
+        ProblemDetail problema = comCodigo(HttpStatus.CONFLICT, "Operação não permitida", ex.getMessage(), ex.codigo());
+        ex.extras().forEach(problema::setProperty);
+        return problema;
+    }
+
+    @ExceptionHandler(com.locgym.compartilhado.erros.RequisicaoInvalidaException.class)
+    public ProblemDetail requisicaoInvalida(com.locgym.compartilhado.erros.RequisicaoInvalidaException ex) {
+        return comCodigo(HttpStatus.BAD_REQUEST, "Requisição inválida", ex.getMessage(), ex.codigo());
     }
 
     /** Duas operações alteraram o mesmo registro ao mesmo tempo (versão otimista). */

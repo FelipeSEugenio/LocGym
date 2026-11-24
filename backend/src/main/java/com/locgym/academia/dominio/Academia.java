@@ -11,16 +11,21 @@ public class Academia {
     private DadosDaAcademia dados;
     private StatusAcademia status;
     private ParametrosCobranca parametrosCobranca;
+    private int toleranciaPontualidade;
 
-    public Academia(UUID id, DadosDaAcademia dados, StatusAcademia status, ParametrosCobranca parametrosCobranca) {
+    public static final int TOLERANCIA_PADRAO = 10;
+
+    public Academia(UUID id, DadosDaAcademia dados, StatusAcademia status, ParametrosCobranca parametrosCobranca,
+                    int toleranciaPontualidade) {
         this.id = Objects.requireNonNull(id);
         this.dados = Objects.requireNonNull(dados);
         this.status = Objects.requireNonNull(status);
         this.parametrosCobranca = Objects.requireNonNull(parametrosCobranca);
+        this.toleranciaPontualidade = toleranciaPontualidade;
     }
 
     public static Academia nova(DadosDaAcademia dados) {
-        return new Academia(UUID.randomUUID(), dados, StatusAcademia.ATIVA, ParametrosCobranca.PADRAO);
+        return new Academia(UUID.randomUUID(), dados, StatusAcademia.ATIVA, ParametrosCobranca.PADRAO, TOLERANCIA_PADRAO);
     }
 
     /** @return {@code true} se algum parâmetro mudou. */
@@ -35,6 +40,18 @@ public class Academia {
             return false;
         }
         parametrosCobranca = novos;
+        return true;
+    }
+
+    /** Minutos após o início da aula em que o check-in ainda é pontual (0 a 60). @return {@code true} se mudou. */
+    public boolean alterarToleranciaPontualidade(int minutos) {
+        if (minutos < 0 || minutos > 60) {
+            throw new ValorInvalidoException("toleranciaPontualidade", "Informe de 0 a 60 minutos");
+        }
+        if (toleranciaPontualidade == minutos) {
+            return false;
+        }
+        toleranciaPontualidade = minutos;
         return true;
     }
 
@@ -55,4 +72,5 @@ public class Academia {
     public DadosDaAcademia dados() { return dados; }
     public StatusAcademia status() { return status; }
     public ParametrosCobranca parametrosCobranca() { return parametrosCobranca; }
+    public int toleranciaPontualidade() { return toleranciaPontualidade; }
 }

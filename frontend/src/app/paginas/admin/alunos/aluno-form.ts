@@ -56,6 +56,8 @@ import { COR_STATUS, formatarData, ROTULO_MATRICULA, ROTULO_STATUS } from '../ro
         <p>Sem matrícula ativa.</p>
         <a mat-stroked-button routerLink="/admin/matriculas/nova" [queryParams]="{ alunoId: id }">Matricular</a>
       }
+      <h3>Frequência</h3>
+      <a mat-stroked-button routerLink="/admin/frequencia" [queryParams]="{ alunoId: id }">Ver frequência</a>
     }
 
     @if (aluno(); as a) {
