@@ -12,4 +12,6 @@ public interface ProfessorRepositorio {
     Optional<Professor> porId(UUID id);
 
     void salvar(Professor professor);
+
+    java.util.Map<UUID, String> nomes(java.util.Collection<UUID> ids);
 }

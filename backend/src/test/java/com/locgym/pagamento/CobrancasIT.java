@@ -1,5 +1,7 @@
 package com.locgym.pagamento;
 
+import static java.time.LocalDate.of;
+
 import static com.locgym.apoio.Cenarios.comoAdmin;
 import static com.locgym.apoio.Cenarios.novoAdministrador;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -291,5 +293,19 @@ class CobrancasIT {
 
         assertThat(payloads).hasSizeGreaterThanOrEqualTo(2).allSatisfy(p -> assertThat(p)
                 .doesNotContain((String) dadosAluno.get("cpf")).doesNotContain((String) dadosAluno.get("email")));
+    }
+
+    @Test
+    void vencimentoAtrasadoMaisAntigoDoAlunoConsideraCancelada() {
+        UUID plano = DadosDeTeste.plano(su.jdbc(), admin.academiaId(), "Outro");
+        UUID ativa = DadosDeTeste.matricula(su.jdbc(), admin.academiaId(), aluno, plano, hoje.minusMonths(1));
+        UUID antiga = DadosDeTeste.cobranca(su.jdbc(), admin.academiaId(), matricula, aluno, of(2026, 10, 1));
+        UUID recente = DadosDeTeste.cobranca(su.jdbc(), admin.academiaId(), ativa, aluno, of(2026, 11, 1));
+        su.jdbc().update("update pagamento set status = 'ATRASADO' where id in (?, ?)", antiga, recente);
+        UUID outroUsuario = DadosDeTeste.usuario(su.jdbc(), "em-dia-" + UUID.randomUUID() + "@teste.com");
+        UUID emDia = DadosDeTeste.aluno(su.jdbc(), outroUsuario, admin.academiaId(), "ATIVO");
+
+        assertThat(naAcademia(() -> cobrancas.vencimentoAtrasadoMaisAntigoDoAluno(aluno))).contains(of(2026, 10, 1));
+        assertThat(naAcademia(() -> cobrancas.vencimentoAtrasadoMaisAntigoDoAluno(emDia))).isEmpty();
     }
 }

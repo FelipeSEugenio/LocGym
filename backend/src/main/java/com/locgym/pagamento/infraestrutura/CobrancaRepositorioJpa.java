@@ -75,6 +75,11 @@ class CobrancaRepositorioJpa implements CobrancaRepositorio {
     }
 
     @Override
+    public Optional<LocalDate> vencimentoAtrasadoMaisAntigoDoAluno(UUID alunoId) {
+        return dados.menorVencimentoAtrasadoDoAluno(alunoId);
+    }
+
+    @Override
     public Optional<LocalDate> maiorFimDePeriodo(UUID matriculaId) {
         return dados.maiorFimDePeriodo(matriculaId);
     }

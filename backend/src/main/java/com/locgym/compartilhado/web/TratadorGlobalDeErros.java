@@ -44,7 +44,9 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(RegraVioladaException.class)
     public ProblemDetail regraViolada(RegraVioladaException ex) {
-        return comCodigo(HttpStatus.CONFLICT, "Operação não permitida", ex.getMessage(), ex.codigo());
+        ProblemDetail problema = comCodigo(HttpStatus.CONFLICT, "Operação não permitida", ex.getMessage(), ex.codigo());
+        ex.extras().forEach(problema::setProperty);
+        return problema;
     }
 
     /** Duas operações alteraram o mesmo registro ao mesmo tempo (versão otimista). */

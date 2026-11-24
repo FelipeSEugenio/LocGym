@@ -31,4 +31,11 @@ class ConsultaAcademias implements Academias {
         return academias.porId(academiaId).map(Academia::parametrosCobranca)
                 .orElseThrow(() -> new NaoEncontradoException("Academia não encontrada"));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int toleranciaPontualidade(UUID academiaId) {
+        return academias.porId(academiaId).map(Academia::toleranciaPontualidade)
+                .orElseThrow(() -> new NaoEncontradoException("Academia não encontrada"));
+    }
 }

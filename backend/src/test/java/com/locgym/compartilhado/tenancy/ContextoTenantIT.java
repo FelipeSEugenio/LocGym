@@ -37,6 +37,14 @@ class ContextoTenantIT {
     }
 
     @Test
+    void regraVioladaComExtras() {
+        var r = http.comToken(admin.token()).comContexto(admin.academiaId(), "ADMIN").get("/api/v1/teste-regra-com-extras");
+        assertThat(r.status()).isEqualTo(409);
+        assertThat(r.texto("codigo")).isEqualTo("X");
+        assertThat(r.corpo().get("aulas").get(0).asString()).isEqualTo("a");
+    }
+
+    @Test
     void semHeaders400() {
         var r = http.comToken(admin.token()).get("/api/v1/teste-contexto");
         assertThat(r.status()).isEqualTo(400);

@@ -34,6 +34,8 @@ public interface CobrancaRepositorio {
 
     Optional<LocalDate> vencimentoAtrasadoMaisAntigo(UUID matriculaId);
 
+    Optional<LocalDate> vencimentoAtrasadoMaisAntigoDoAluno(UUID alunoId);
+
     Optional<LocalDate> maiorFimDePeriodo(UUID matriculaId);
 
     List<Cobranca> pendentesVencidas(LocalDate hoje, Set<UUID> matriculasIgnoradas);

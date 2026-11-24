@@ -14,4 +14,7 @@ public interface Alunos {
 
     /** Nomes dos alunos informados que existem na academia do contexto. */
     Map<UUID, String> nomes(Collection<UUID> alunoIds);
+
+    /** Aluno do usuário na academia do contexto atual. */
+    Optional<UUID> idDoUsuario(UUID usuarioId);
 }

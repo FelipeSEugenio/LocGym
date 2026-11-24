@@ -58,9 +58,9 @@ public class ServicoAcademia implements CriadorDeAcademia {
         return academias.porId(id).orElseThrow(() -> new NaoEncontradoException("Academia não encontrada"));
     }
 
-    /** {@code parametrosOuNulo} nulo mantém os parâmetros de cobrança atuais. */
+    /** {@code parametrosOuNulo} e {@code toleranciaOuNulo} nulos mantêm os valores atuais. */
     @Transactional
-    public Academia atualizar(DadosDaAcademia dados, ParametrosCobranca parametrosOuNulo) {
+    public Academia atualizar(DadosDaAcademia dados, ParametrosCobranca parametrosOuNulo, Integer toleranciaOuNulo) {
         Academia academia = ativa();
         if (academias.cnpjEmUso(dados.cnpj(), academia.id())) {
             throw new RegraVioladaException("CNPJ_JA_CADASTRADO", "CNPJ já cadastrado");
@@ -70,6 +70,12 @@ public class ServicoAcademia implements CriadorDeAcademia {
         if (parametrosOuNulo != null && academia.alterarParametrosCobranca(parametrosOuNulo)) {
             auditoria.registrar(AcaoAuditada.PARAMETROS_COBRANCA_ALTERADOS, "academia", academia.id(),
                     anteriores, parametrosOuNulo);
+        }
+        int toleranciaAnterior = academia.toleranciaPontualidade();
+        if (toleranciaOuNulo != null && academia.alterarToleranciaPontualidade(toleranciaOuNulo)) {
+            auditoria.registrar(AcaoAuditada.TOLERANCIA_PONTUALIDADE_ALTERADA, "academia", academia.id(),
+                    java.util.Map.of("toleranciaPontualidade", toleranciaAnterior),
+                    java.util.Map.of("toleranciaPontualidade", toleranciaOuNulo));
         }
         academias.atualizar(academia);
         return academia;

@@ -27,6 +27,9 @@ public interface Cobrancas {
 
     java.util.Optional<LocalDate> vencimentoAtrasadoMaisAntigo(UUID matriculaId);
 
+    /** Vencimento atrasado mais antigo do aluno em qualquer matrícula (inclusive cancelada). */
+    java.util.Optional<LocalDate> vencimentoAtrasadoMaisAntigoDoAluno(UUID alunoId);
+
     /** Início do primeiro período ainda sem cobrança: o maior fim de período já cobrado, ou {@code aPartirDe}. */
     LocalDate inicioDoProximoPeriodoSemCobranca(UUID matriculaId, LocalDate aPartirDe);
 

@@ -11,4 +11,7 @@ public interface Academias {
 
     /** @throws com.locgym.compartilhado.erros.NaoEncontradoException se a academia não existe */
     ParametrosCobranca parametrosCobranca(UUID academiaId);
+
+    /** Minutos de tolerância de pontualidade do check-in. @throws com.locgym.compartilhado.erros.NaoEncontradoException se a academia não existe */
+    int toleranciaPontualidade(UUID academiaId);
 }
