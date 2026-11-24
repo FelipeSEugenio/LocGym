@@ -4,7 +4,7 @@
 
 Sistema web **multi-tenant** de gestão para academias de Jiu-Jitsu: alunos, planos, matrículas com cobrança recorrente, inadimplência, horários, check-in por QR Code e relatórios — cada academia com seus dados totalmente isolados.
 
-> **Estado:** Fases 1 (Fundação), 2 (Identidade e cadastros) e 3 (Matrículas e pagamentos) concluídas — login seguro, isolamento entre academias na aplicação e no banco (RLS), auditoria, cadastros, matrículas com cobrança recorrente, registro de pagamentos, inadimplência e rotina diária multi-tenant publicando eventos no Kafka. Próxima: frequência e check-in por QR Code — veja o [roadmap](docs/08-roadmap.md).
+> **Estado:** Fases 1 (Fundação), 2 (Identidade e cadastros), 3 (Matrículas e pagamentos) e 4 (Frequência) concluídas — login seguro, isolamento entre academias na aplicação e no banco (RLS), auditoria, cadastros, matrículas com cobrança recorrente, inadimplência e rotina diária multi-tenant, grade de horários e check-in por QR Code rotativo assinado lido pela câmera na recepção, publicando eventos no Kafka. Próxima: portal do aluno e relatórios — veja o [roadmap](docs/08-roadmap.md).
 
 ## Stack
 
@@ -58,6 +58,7 @@ docker compose up -d --build --wait
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` | Dono do schema — usado pelas migrations. |
 | `DB_APP_USER` / `DB_APP_PASSWORD` | Papel da aplicação (`locgym_app`), sem permissão para ignorar o RLS. |
 | `JWT_CHAVE_PRIVADA` (opcional) | Chave RSA (PEM PKCS#8) que assina os tokens. Sem ela, uma chave temporária é gerada a cada subida e as sessões não sobrevivem a reinícios. |
+| `CHECKIN_CHAVE_QR` (opcional) | Chave HMAC do QR de check-in (Base64 de 32 bytes: `openssl rand -base64 32`). Sem ela, uma temporária é gerada a cada subida. A câmera do navegador só funciona em `localhost` ou HTTPS. |
 
 Parar: `docker compose down` (os dados ficam nos volumes; `docker compose down -v` apaga tudo).
 

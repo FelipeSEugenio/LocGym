@@ -57,16 +57,19 @@
 - **Rotina diária** às 00:05 de São Paulo, em uma instância por vez (ShedLock), academia por academia: gera cobranças (inclusive períodos que faltam), marca ATRASADO no dia seguinte ao vencimento (exceto matrícula suspensa), vence matrículas além da carência. Idempotente; falha numa academia não para as outras. Academias inativas são ignoradas.
 - **Inadimplente** = tem ao menos uma cobrança ATRASADA, em qualquer matrícula (calculado, não armazenado). Tela de inadimplência ordenada pelo atraso mais antigo.
 
-## RF08 — Horários e aulas
-- Horário: professor, dia da semana, início, término, tipo de aula, status.
-- Aula: ocorrência concreta de um horário numa data, criada no primeiro check-in.
+## RF08 — Horários e aulas ✅ Fase 4
+- Horário (grade semanal): professor ATIVO, dia da semana (1 = segunda … 7 = domingo), início e fim no mesmo dia, tipo de aula em texto livre, status. Horários sobrepostos são permitidos. Excluir só se nunca teve aula (senão, inativar).
+- Aula: ocorrência de um horário numa data, criada no primeiro check-in, com **cópia** de início, fim, professor e tipo — alterar o horário não muda aulas já criadas.
+- **Aula aberta:** de 30 min antes do início até o fim (exclusivo). A aula já criada no dia usa os horários copiados e continua aberta mesmo que o horário mude ou seja inativado; horários sem aula no dia usam os dados atuais (só ATIVOS).
 
-## RF09 — Check-in e frequência
-- QR Code no portal do aluno com **token assinado, renovado a cada 30 s**; leitura pela tela "Recepção" do painel admin.
-- Exige academia ATIVA, aluno ATIVO e matrícula ATIVA. Inadimplente dentro da carência passa, com alerta.
-- Associa à aula cuja janela vai de 30 min antes do início até o fim; pontual se ≤ início + tolerância (padrão 10 min).
-- Check-in duplicado na mesma aula é rejeitado. Presença manual pelo admin. Correção e exclusão lógica com motivo e auditoria.
-- Publica `checkin.registrado`.
+## RF09 — Check-in e frequência ✅ Fase 4
+- QR Code em "Meu QR Code" (área do aluno) com **token HMAC-SHA256 renovado a cada 30 s e aceito por 60 s**; leitura pela câmera na tela "Recepção" do painel admin (ou colando o código).
+- Exige academia ATIVA, aluno ATIVO, matrícula ATIVA e `data_inicio ≤ data`. Inadimplente dentro da carência passa, com alerta (vencimento mais antigo e dias de atraso, considerando todas as matrículas).
+- **Escolha da aula:** com uma aula aberta, automática; com várias, a recepção escolhe (409 `AULA_AMBIGUA` com a lista); sem nenhuma, check-in **livre** (um por aluno por dia, sem pontualidade).
+- Pontual se a hora (em minutos) ≤ início + tolerância (configurável por academia, 0–60, padrão 10).
+- Um registro ativo por aluno por aula — leitura repetida, duas recepções ou clique duplo → 409 `CHECKIN_DUPLICADO`.
+- Presença manual pelo admin (mesmas regras, até 30 dias para trás, nunca no futuro). Correção (o antigo vira CORRIGIDO e nasce um novo) e exclusão lógica, com motivo, auditoria e só para registros dos últimos 30 dias; a correção não reavalia a matrícula.
+- Publica `checkin.registrado`, `checkin.corrigido` e `checkin.excluido`.
 
 ## RF10 — Portal do aluno
 Dados cadastrais, matrícula, plano, vencimento, situação financeira, pagamentos, horários, QR Code e histórico de frequência. Responsivo.

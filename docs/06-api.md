@@ -72,12 +72,21 @@
 | POST | `/api/v1/cobrancas/{id}/cancelar` | `{motivo}` — abono: concede o período sem contar como recebido. Auditado. |
 | GET | `/api/v1/inadimplencia?busca=&pagina=&tamanho=` | Por aluno: total e quantidade em atraso, vencimento mais antigo, dias de atraso, matrícula atual. |
 | POST | `/api/v1/dev/rotina-diaria` | **Só no perfil `dev`:** executa a rotina diária agora (data real). |
+| GET | `/api/v1/horarios?diaSemana=&status=` | Grade completa (sem paginação), com `professorNome`; horas `HH:mm`. |
+| POST / GET / PUT / DELETE | `/api/v1/horarios[/{id}]` | `{professorId, diaSemana (1–7), inicio, fim, tipo, status?}`. 409 `PROFESSOR_INATIVO`; DELETE 409 `HORARIO_COM_AULAS`. Auditado. |
+| GET | `/api/v1/recepcao/aulas-abertas?data=&hora=` | Aulas abertas agora (São Paulo) ou no momento informado. |
+| POST | `/api/v1/checkins/qr` | `{token, horarioId?}` → 201 `{checkinId, aluno, aula, livre, pontualidade, alerta}`. 400 `QR_INVALIDO`, `QR_EXPIRADO`, `QR_DE_OUTRA_ACADEMIA`; 409 `ALUNO_INATIVO`, `SEM_MATRICULA`, `MATRICULA_NAO_ATIVA` (+`status`), `MATRICULA_NAO_INICIADA` (+`dataInicio`), `AULA_AMBIGUA` (+`aulas`), `AULA_NAO_ABERTA`, `CHECKIN_DUPLICADO`. |
+| POST | `/api/v1/checkins` | Presença manual `{alunoId, data, hora, horarioId?}` — mesmas regras; data até 30 dias para trás, nunca no futuro. Auditado. |
+| GET | `/api/v1/checkins?alunoId=&horarioId=&de=&ate=&status=&pagina=&tamanho=` | Histórico; padrão últimos 30 dias, só ATIVOS, mais recentes primeiro. |
+| POST | `/api/v1/checkins/{id}/corrigir` | `{data, hora, horarioId?, motivo}` → 201 com o novo registro. 409 `CHECKIN_NAO_ATIVO`, `CHECKIN_FORA_DO_PRAZO`, `CHECKIN_DUPLICADO`. Auditado. |
+| POST | `/api/v1/checkins/{id}/excluir` | `{motivo}` → 204. 409 `CHECKIN_NAO_ATIVO`, `CHECKIN_FORA_DO_PRAZO`. Auditado. |
 
 ## Rotas do aluno (`X-Perfil: ALUNO`)
 
 | Método | Caminho | Descrição |
 |---|---|---|
 | GET | `/api/v1/eu/aluno` | "Meus dados" na academia ativa (somente leitura). Aluno INATIVO consulta; CANCELADO perde o acesso. |
+| GET | `/api/v1/eu/qr-checkin` | `{token, expiraEm}` — token do QR de check-in (válido por 60 s; o portal renova a cada 30 s). |
 
 ## Operacionais
 

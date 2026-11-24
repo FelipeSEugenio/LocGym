@@ -25,7 +25,8 @@ Um único deployable dividido em módulos de negócio verificados pelo **Spring 
 | `academia`, `aluno`, `professor`, `plano` | Cadastros | ✅ 2 |
 | `pagamento` | Cobranças, registro de pagamento, abono | ✅ 3 |
 | `matricula` | Matrículas, vigência, rotina diária, inadimplência | ✅ 3 |
-| `agenda`, `frequencia` | Horários, aulas, check-in | 4 |
+| `agenda` | Horários e aulas (API pública `Agenda`: aulas abertas, garantir aula) | ✅ 4 |
+| `frequencia` | Token do QR, check-in, presença manual, correção, histórico | ✅ 4 |
 | `relatorio`, `notificacao` | Indicadores; consumo de eventos | 5 |
 
 ### Camadas (Clean Architecture) dentro de cada módulo

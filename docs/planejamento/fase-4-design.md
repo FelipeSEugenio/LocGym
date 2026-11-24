@@ -187,6 +187,12 @@ Atualizar 02 (RF08/RF09 com as regras finais), 04 (ER com horário, aula, check-
 - Tamanho de página padrão do histórico.
 - Como `CalendarioDeTeste` passa a controlar a hora (desde que a data de negócio continue vindo do mesmo relógio).
 
+## 13.1 Ajustes feitos na implementação
+- `substituido_por` com FK `deferrable initially deferred`: a correção atualiza o registro antigo (liberando o índice único da aula) antes de inserir o novo para o qual ele aponta.
+- Erros do token (400 com `codigo`) usam a exceção compartilhada `RequisicaoInvalidaException`.
+- Horas na API em `HH:mm`; paginação do histórico com `pagina`/`tamanho` (padrão da API).
+- Presença manual e correção usam o mesmo diálogo no frontend; professores são escolhidos numa lista de seleção.
+
 ## 14. Decisões minhas (revisáveis)
 (Aprovadas pelo usuário: **opção B** para aulas sobrepostas; as decisões listadas na conversa — token de 60 s, check-in livre, aula como cópia do horário, presença manual com as mesmas regras, correção/exclusão, tolerância na tela da academia, telas e biblioteca de leitura.)
 - Dia da semana ISO (1 = segunda); horário não cruza meia-noite; tipo de aula em texto livre.

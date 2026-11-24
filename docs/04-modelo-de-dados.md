@@ -148,6 +148,52 @@ erDiagram
     }
 ```
 
-## Planejado (Fases 4–5)
+## Fase 4
 
-`horario`, `aula`, `checkin`, `notificacao`, tolerância de pontualidade — todas de tenant, com `academia_id` + RLS.
+- `academia` ganhou `tolerancia_pontualidade_min` (0–60, padrão 10) — V7.
+- `horario`, `aula` e `checkin` — de tenant, com `academia_id` + RLS forçado — V8.
+  - `aula`: `unique (horario_id, data)`; criação idempotente com `on conflict do nothing`.
+  - `checkin`: `aula_id` nulo = check-in livre; índices únicos parciais `(aula_id, aluno_id) where status = 'ATIVO'` e `(academia_id, aluno_id, data) where status = 'ATIVO' and aula_id is null`; `substituido_por` (correção) com FK `deferrable initially deferred`.
+
+```mermaid
+erDiagram
+    PROFESSOR ||--o{ HORARIO : "ministra"
+    HORARIO ||--o{ AULA : "uma por data"
+    AULA ||--o{ CHECKIN : "presenças"
+    ALUNO ||--o{ CHECKIN : "entradas"
+    CHECKIN |o--o| CHECKIN : "substituido_por (correção)"
+    HORARIO {
+        uuid id PK
+        uuid academia_id
+        smallint dia_semana
+        time inicio
+        time fim
+        string tipo
+        string status
+        bigint version
+    }
+    AULA {
+        uuid id PK
+        uuid horario_id
+        date data
+        time inicio "cópia"
+        time fim "cópia"
+        uuid professor_id "cópia"
+        string tipo "cópia"
+    }
+    CHECKIN {
+        uuid id PK
+        uuid aula_id "nulo = livre"
+        date data
+        time hora
+        string origem "QR | MANUAL"
+        string pontualidade
+        string status "ATIVO | CORRIGIDO | EXCLUIDO"
+        string motivo
+        bigint version
+    }
+```
+
+## Planejado (Fase 5)
+
+`notificacao` — de tenant, com `academia_id` + RLS.
