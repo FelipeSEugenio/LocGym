@@ -60,3 +60,24 @@ export function formatarData(iso: string | null | undefined): string {
   const [a, m, d] = iso.split('-');
   return `${d}/${m}/${a}`;
 }
+
+/** Dia da semana ISO: 1 = segunda … 7 = domingo. */
+export const ROTULO_DIA_SEMANA: Record<number, string> = {
+  1: 'Segunda',
+  2: 'Terça',
+  3: 'Quarta',
+  4: 'Quinta',
+  5: 'Sexta',
+  6: 'Sábado',
+  7: 'Domingo',
+};
+
+export const ROTULO_ORIGEM: Record<string, string> = { QR: 'QR Code', MANUAL: 'Manual' };
+
+export const ROTULO_PONTUALIDADE: Record<string, string> = { PONTUAL: 'Pontual', ATRASADO: 'Atrasado' };
+
+export const ROTULO_STATUS_CHECKIN: Record<string, string> = {
+  ATIVO: 'Válido',
+  CORRIGIDO: 'Corrigido',
+  EXCLUIDO: 'Excluído',
+};

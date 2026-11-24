@@ -57,6 +57,9 @@ export const routes: Routes = [
       { path: 'inadimplencia', loadComponent: () => import('./paginas/admin/inadimplencia/inadimplencia').then((m) => m.InadimplenciaPagina) },
       { path: 'administradores', loadComponent: () => import('./paginas/admin/administradores/administradores').then((m) => m.Administradores) },
       { path: 'academia', loadComponent: () => import('./paginas/admin/academia/academia').then((m) => m.AcademiaPagina) },
+      { path: 'agenda', loadComponent: () => import('./paginas/admin/agenda/agenda-lista').then((m) => m.AgendaLista) },
+      { path: 'agenda/novo', loadComponent: () => import('./paginas/admin/agenda/horario-form').then((m) => m.HorarioForm) },
+      { path: 'agenda/:id', loadComponent: () => import('./paginas/admin/agenda/horario-form').then((m) => m.HorarioForm) },
     ],
   },
   {
@@ -67,6 +70,7 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'meus-dados' },
       { path: 'meus-dados', loadComponent: () => import('./paginas/aluno/meus-dados/meus-dados').then((m) => m.MeusDados) },
+      { path: 'meu-qr', loadComponent: () => import('./paginas/aluno/meu-qr/meu-qr').then((m) => m.MeuQr) },
     ],
   },
   { path: '**', redirectTo: '' },

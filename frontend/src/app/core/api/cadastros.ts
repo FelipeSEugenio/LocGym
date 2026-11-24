@@ -111,7 +111,7 @@ export class AcademiaApi {
   ativa(): Observable<Academia> {
     return this.http.get<Academia>('/api/v1/academia');
   }
-  atualizar(dados: DadosAcademia & Partial<ParametrosCobranca>): Observable<Academia> {
+  atualizar(dados: DadosAcademia & Partial<ParametrosCobranca> & { toleranciaPontualidade?: number }): Observable<Academia> {
     return this.http.put<Academia>('/api/v1/academia', dados);
   }
   alterarStatus(status: 'ATIVA' | 'INATIVA'): Observable<Academia> {
