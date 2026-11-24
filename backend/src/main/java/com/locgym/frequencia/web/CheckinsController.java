@@ -5,7 +5,15 @@ import com.locgym.agenda.AulaRegistrada;
 import com.locgym.frequencia.aplicacao.ServicoCheckin;
 import com.locgym.frequencia.aplicacao.ServicoCheckin.Alerta;
 import com.locgym.frequencia.aplicacao.ServicoCheckin.ResultadoCheckin;
+import com.locgym.compartilhado.paginacao.Pagina;
+import com.locgym.frequencia.aplicacao.ServicoHistorico;
+import com.locgym.frequencia.aplicacao.ServicoHistorico.ItemHistorico;
+import com.locgym.frequencia.dominio.Origem;
 import com.locgym.frequencia.dominio.Pontualidade;
+import com.locgym.frequencia.dominio.StatusCheckin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -44,10 +52,50 @@ class CheckinsController {
         }
     }
 
-    private final ServicoCheckin servico;
+    record MotivoRequisicao(@NotBlank String motivo) {}
 
-    CheckinsController(ServicoCheckin servico) {
+    record CorrecaoRequisicao(@NotNull LocalDate data, @NotNull LocalTime hora, UUID horarioId, @NotBlank String motivo) {}
+
+    record ItemResposta(UUID id, UUID alunoId, String alunoNome, LocalDate data,
+                        @JsonFormat(pattern = "HH:mm") LocalTime hora, Origem origem, Pontualidade pontualidade,
+                        StatusCheckin status, String motivo, AulaResumo aula) {
+        static ItemResposta de(ItemHistorico i) {
+            var c = i.checkin();
+            return new ItemResposta(c.id(), c.alunoId(), i.alunoNome(), c.data(), c.hora(), c.origem(),
+                    c.pontualidade(), c.status(), c.motivo(), AulaResumo.de(i.aula()));
+        }
+    }
+
+    private final ServicoCheckin servico;
+    private final ServicoHistorico historico;
+
+    CheckinsController(ServicoCheckin servico, ServicoHistorico historico) {
         this.servico = servico;
+        this.historico = historico;
+    }
+
+    @GetMapping
+    Pagina<ItemResposta> listar(@RequestParam(required = false) UUID alunoId,
+                                @RequestParam(required = false) UUID horarioId,
+                                @RequestParam(required = false) LocalDate de,
+                                @RequestParam(required = false) LocalDate ate,
+                                @RequestParam(required = false) StatusCheckin status,
+                                @RequestParam(required = false) Integer pagina,
+                                @RequestParam(required = false) Integer tamanho) {
+        return historico.listar(alunoId, horarioId, de, ate, status, Pagina.paginaValida(pagina),
+                Pagina.tamanhoValido(tamanho)).mapear(ItemResposta::de);
+    }
+
+    @PostMapping("/{id}/excluir")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void excluir(@PathVariable UUID id, @Valid @RequestBody MotivoRequisicao r) {
+        servico.excluir(id, r.motivo());
+    }
+
+    @PostMapping("/{id}/corrigir")
+    @ResponseStatus(HttpStatus.CREATED)
+    CheckinResposta corrigir(@PathVariable UUID id, @Valid @RequestBody CorrecaoRequisicao r) {
+        return CheckinResposta.de(servico.corrigir(id, r.data(), r.hora(), r.horarioId(), r.motivo()));
     }
 
     @PostMapping("/qr")

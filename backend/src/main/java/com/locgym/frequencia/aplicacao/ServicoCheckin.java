@@ -13,6 +13,8 @@ import com.locgym.compartilhado.erros.RegraVioladaException;
 import com.locgym.compartilhado.eventos.PublicadorEventos;
 import com.locgym.compartilhado.tempo.Calendario;
 import com.locgym.compartilhado.tenancy.TenantContext;
+import com.locgym.frequencia.aplicacao.EventosFrequencia.CheckinCorrigido;
+import com.locgym.frequencia.aplicacao.EventosFrequencia.CheckinExcluido;
 import com.locgym.frequencia.aplicacao.EventosFrequencia.CheckinRegistrado;
 import com.locgym.frequencia.dominio.Checkin;
 import com.locgym.frequencia.dominio.CheckinRepositorio;
@@ -83,6 +85,56 @@ public class ServicoCheckin {
                 Map.of("alunoId", alunoId, "data", data.toString(), "hora", hora.truncatedTo(ChronoUnit.MINUTES).toString(),
                         "aulaId", r.aula() == null ? "" : r.aula().id().toString()));
         return r;
+    }
+
+    @Transactional
+    public void excluir(UUID checkinId, String motivo) {
+        Checkin c = editavel(checkinId);
+        c.excluir(motivo);
+        checkins.salvar(c);
+        UUID academia = TenantContext.exigir().academiaId();
+        eventos.publicar(new CheckinExcluido(academia, c.id(), c.alunoId(), c.motivo()));
+        auditoria.registrar(AcaoAuditada.CHECKIN_EXCLUIDO, "checkin", c.id(), Map.of("status", "ATIVO"),
+                Map.of("status", c.status().name(), "motivo", c.motivo()));
+    }
+
+    /**
+     * Substitui o registro por um novo, com a aula escolhida para a nova data e hora (regra da recepção) e a
+     * pontualidade recalculada. A matrícula não é reavaliada: o aluno estava presente; corrige-se o lançamento.
+     */
+    @Transactional
+    public ResultadoCheckin corrigir(UUID checkinId, LocalDate data, LocalTime hora, UUID horarioId, String motivo) {
+        Checkin antigo = editavel(checkinId);
+        Checkin.validarMomento(data, hora, calendario.agora());
+        LocalTime minuto = hora.truncatedTo(ChronoUnit.MINUTES);
+        AulaRegistrada aula = EscolhaDeAula.escolher(agenda.abertas(data, minuto), horarioId)
+                .map(a -> agenda.garantirAula(a.horarioId(), data)).orElse(null);
+        var contexto = TenantContext.exigir();
+        int tolerancia = academias.toleranciaPontualidade(contexto.academiaId());
+        Checkin novo = antigo.corrigir(aula == null ? null : aula.id(), aula == null ? null : aula.inicio(), data,
+                minuto, motivo, tolerancia, contexto.usuarioId(), clock.instant());
+        checkins.salvar(antigo);
+        checkins.inserir(novo);
+        eventos.publicar(new CheckinCorrigido(contexto.academiaId(), antigo.id(), novo.id(), novo.alunoId(),
+                aula == null ? null : aula.id(), aula == null ? null : aula.horarioId(), data, novo.hora().toString(),
+                novo.origem().name(), novo.pontualidade() == null ? null : novo.pontualidade().name()));
+        auditoria.registrar(AcaoAuditada.CHECKIN_CORRIGIDO, "checkin", antigo.id(),
+                Map.of("data", antigo.data().toString(), "hora", antigo.hora().toString(),
+                        "aulaId", antigo.aulaId() == null ? "" : antigo.aulaId().toString()),
+                Map.of("checkinNovoId", novo.id(), "data", data.toString(), "hora", novo.hora().toString(),
+                        "aulaId", aula == null ? "" : aula.id().toString(), "motivo", antigo.motivo()));
+        String nome = alunos.situacao(novo.alunoId()).map(SituacaoAluno::nome).orElse(null);
+        return new ResultadoCheckin(novo.id(), novo.alunoId(), nome, aula, novo.pontualidade(), null);
+    }
+
+    /** Registro da academia, ainda dentro dos 30 dias em que pode ser corrigido ou excluído. */
+    private Checkin editavel(UUID checkinId) {
+        Checkin c = checkins.porId(checkinId).orElseThrow(() -> new NaoEncontradoException("Check-in não encontrado"));
+        if (c.data().isBefore(calendario.hoje().minusDays(Checkin.DIAS_RETROATIVOS))) {
+            throw new RegraVioladaException("CHECKIN_FORA_DO_PRAZO",
+                    "Só é possível corrigir ou excluir registros dos últimos 30 dias");
+        }
+        return c;
     }
 
     /** Aulas abertas no momento informado (ou agora, em São Paulo). */

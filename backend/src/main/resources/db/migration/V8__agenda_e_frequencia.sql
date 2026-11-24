@@ -45,7 +45,9 @@ create table checkin (
     pontualidade    varchar(8)   check (pontualidade in ('PONTUAL', 'ATRASADO')),
     status          varchar(9)   not null check (status in ('ATIVO', 'CORRIGIDO', 'EXCLUIDO')),
     motivo          varchar(300),
-    substituido_por uuid references checkin (id),
+    -- deferrable: na correção o registro antigo passa a apontar para o novo antes de o novo ser inserido
+    -- (a ordem inversa violaria o índice único da aula).
+    substituido_por uuid references checkin (id) deferrable initially deferred,
     registrado_por  uuid,
     version         bigint       not null default 0,
     criado_em       timestamptz  not null default now(),
