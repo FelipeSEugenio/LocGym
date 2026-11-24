@@ -37,9 +37,9 @@ describe('MeuQr', () => {
   it('renovaACada30sEContaRegressiva', async () => {
     let n = 0;
     const { fixture, comp, api } = await montar(() => of(token(++n)));
-    expect(comp.restante()).toBe(60);
+    expect(comp.restante()).toBe(58);
     await vi.advanceTimersByTimeAsync(10_000);
-    expect(comp.restante()).toBe(50);
+    expect(comp.restante()).toBe(48);
     await vi.advanceTimersByTimeAsync(20_000);
     fixture.detectChanges();
     expect(api.meuQr).toHaveBeenCalledTimes(2);
@@ -72,5 +72,13 @@ describe('MeuQr', () => {
     fixture.detectChanges();
     expect(comp.token()).toBeNull();
     expect(fixture.nativeElement.querySelector('.qr svg')).toBeNull();
+  });
+
+  it('relogioDoCelularAdiantadoNaoEscondeOQr', async () => {
+    // expiraEm do servidor já "passou" no relógio do celular (adiantado 2 min)
+    const { fixture, comp } = await montar(() => of({ token: 'token-1', expiraEm: new Date(Date.now() - 60_000).toISOString() }));
+    expect(comp.token()).not.toBeNull();
+    expect(comp.restante()).toBeGreaterThan(50);
+    expect(fixture.nativeElement.querySelector('.qr svg')).not.toBeNull();
   });
 });

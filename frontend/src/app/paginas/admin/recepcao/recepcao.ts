@@ -12,6 +12,8 @@ import { ROTULO_PONTUALIDADE } from '../rotulos';
 interface Resultado { tipo: 'ok' | 'alerta' | 'erro'; titulo: string; detalhe: string; aviso?: string }
 
 const IGNORAR_REPETIDO_MS = 5_000;
+/** Um QR que já registrou check-in não é reenviado enquanto o token vale (evita "recusado" sobre um sucesso). */
+const LEMBRAR_SUCESSO_MS = 60_000;
 const RECARREGAR_AULAS_MS = 60_000;
 
 /** Recepção: lê o QR do aluno e registra o check-in na aula escolhida (ou na única aberta). */
@@ -25,7 +27,7 @@ const RECARREGAR_AULAS_MS = 60_000;
         <p>Nenhuma aula aberta agora: os check-ins serão <strong>livres</strong>.</p>
       } @else {
         <p>{{ aulas().length > 1 ? 'Escolha a aula:' : 'Aula aberta:' }}</p>
-        <mat-radio-group [value]="selecionada()" (change)="selecionada.set($event.value)" class="opcoes">
+        <mat-radio-group [value]="selecionada()" (change)="escolher($event.value)" class="opcoes">
           @for (a of aulas(); track a.horarioId) {
             <mat-radio-button [value]="a.horarioId">{{ a.inicio }} {{ a.tipo }} — {{ a.professorNome }}</mat-radio-button>
           }
@@ -74,11 +76,14 @@ export class Recepcao {
 
   readonly aulas = signal<AulaAberta[]>([]);
   readonly selecionada = signal<string | null>(null);
+  /** Só uma escolha do operador vai para o servidor; a seleção automática (aula única) deixa o servidor decidir. */
+  private readonly escolhaDoOperador = signal(false);
   readonly resultado = signal<Resultado | null>(null);
   readonly semCamera = signal(false);
   readonly tokenDigitado = new FormControl('', { nonNullable: true });
 
   private ultimaLeitura: { token: string; em: number } | null = null;
+  private readonly registrados = new Map<string, number>();
 
   constructor() {
     this.carregarAulas();
@@ -88,14 +93,26 @@ export class Recepcao {
 
   ler(token: string): void {
     const agora = Date.now();
-    if (this.ultimaLeitura?.token === token && agora - this.ultimaLeitura.em < IGNORAR_REPETIDO_MS) {
+    for (const [t, em] of this.registrados) {
+      if (agora - em >= LEMBRAR_SUCESSO_MS) this.registrados.delete(t);
+    }
+    if (this.registrados.has(token)
+      || (this.ultimaLeitura?.token === token && agora - this.ultimaLeitura.em < IGNORAR_REPETIDO_MS)) {
       return;
     }
     this.ultimaLeitura = { token, em: agora };
-    this.frequencia.checkinQr(token, this.selecionada()).subscribe({
-      next: (r) => this.resultado.set(this.sucesso(r)),
+    this.frequencia.checkinQr(token, this.escolhaDoOperador() ? this.selecionada() : null).subscribe({
+      next: (r) => {
+        this.registrados.set(token, Date.now());
+        this.resultado.set(this.sucesso(r));
+      },
       error: (e) => this.resultado.set({ tipo: 'erro', titulo: 'Check-in recusado', detalhe: mensagemDeCheckin(e) }),
     });
+  }
+
+  escolher(horarioId: string): void {
+    this.selecionada.set(horarioId);
+    this.escolhaDoOperador.set(true);
   }
 
   registrarDigitado(): void {
@@ -121,11 +138,11 @@ export class Recepcao {
     this.agenda.aulasAbertas().subscribe((lista) => {
       this.aulas.set(lista);
       const atual = this.selecionada();
-      if (lista.length === 1) {
-        this.selecionada.set(lista[0].horarioId);
-      } else if (!lista.some((a) => a.horarioId === atual)) {
-        this.selecionada.set(null);
+      if (this.escolhaDoOperador() && lista.some((a) => a.horarioId === atual)) {
+        return; // a escolha do operador persiste enquanto a aula estiver aberta
       }
+      this.escolhaDoOperador.set(false);
+      this.selecionada.set(lista.length === 1 ? lista[0].horarioId : null);
     });
   }
 }

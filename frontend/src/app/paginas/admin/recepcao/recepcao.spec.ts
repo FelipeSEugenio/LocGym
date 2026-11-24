@@ -39,11 +39,31 @@ describe('Recepcao', () => {
     return { fixture, comp: fixture.componentInstance, agenda, checkin };
   }
 
-  it('umaAulaAbertaFicaSelecionada', () => {
+  it('umaAulaAbertaFicaSelecionadaMasOServidorDecide', () => {
     const { comp, checkin } = montar([aula('h1', 'Gi')]);
     expect(comp.selecionada()).toBe('h1');
     comp.ler('tok');
-    expect(checkin).toHaveBeenCalledWith('tok', 'h1');
+    expect(checkin).toHaveBeenCalledWith('tok', null);
+  });
+
+  it('segundaAulaAbertaNaoHerdaASelecaoAutomatica', () => {
+    const { comp, agenda, checkin } = montar([aula('h1', 'Gi')]);
+    agenda.aulasAbertas.mockReturnValue(of([aula('h1', 'Gi'), aula('h2', 'No-Gi')]));
+    vi.advanceTimersByTime(60_000);
+    expect(comp.selecionada()).toBeNull();
+    comp.ler('tok');
+    expect(checkin).toHaveBeenCalledWith('tok', null);
+  });
+
+  it('releituraDeCheckinRegistradoNaoViraErro', () => {
+    let n = 0;
+    const { comp, checkin } = montar([aula('h1', 'Gi')],
+      vi.fn(() => (++n === 1 ? of(OK) : throwError(() => erro('CHECKIN_DUPLICADO')))));
+    comp.ler('tok');
+    vi.advanceTimersByTime(6_000);
+    comp.ler('tok');
+    expect(checkin).toHaveBeenCalledTimes(1);
+    expect(comp.resultado()?.tipo).toBe('ok');
   });
 
   it('duasAbertasExigemEscolha', () => {
@@ -57,7 +77,7 @@ describe('Recepcao', () => {
 
   it('escolhaEnviadaComoHorario', () => {
     const { comp, checkin } = montar([aula('h1', 'Gi'), aula('h2', 'Kids')]);
-    comp.selecionada.set('h2');
+    comp.escolher('h2');
     comp.ler('tok');
     expect(checkin).toHaveBeenCalledWith('tok', 'h2');
   });
@@ -89,7 +109,7 @@ describe('Recepcao', () => {
   });
 
   it('mesmoTokenEmMenosDe5sIgnorado', () => {
-    const { comp, checkin } = montar([aula('h1', 'Gi')]);
+    const { comp, checkin } = montar([aula('h1', 'Gi')], vi.fn(() => throwError(() => erro('QR_EXPIRADO'))));
     comp.ler('tok');
     vi.advanceTimersByTime(4_000);
     comp.ler('tok');

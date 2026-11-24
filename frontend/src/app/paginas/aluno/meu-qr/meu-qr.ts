@@ -4,6 +4,8 @@ import QRCode from 'qrcode';
 import { FrequenciaApi, TokenQr } from '../../../core/api/frequencia';
 
 const RENOVAR_A_CADA_MS = 30_000;
+/** Validade do token (60 s) menos uma folga para a rede. Contada no relógio do celular, a partir da chegada. */
+const VALIDADE_LOCAL_MS = 58_000;
 
 /** QR Code de check-in: renovado a cada 30 s; pausa com a aba oculta. */
 @Component({
@@ -36,6 +38,8 @@ export class MeuQr {
   readonly falhou = signal(false);
 
   private renovacao?: ReturnType<typeof setTimeout>;
+  /** Fim da validade no relógio deste aparelho — não usa o expiraEm do servidor, que pode estar em outro relógio. */
+  private expiraLocal = 0;
   private readonly relogio = setInterval(() => this.atualizarContagem(), 1000);
   private readonly aoMudarVisibilidade = () => (document.hidden ? this.pausar() : this.carregar());
 
@@ -54,6 +58,7 @@ export class MeuQr {
     this.api.meuQr().subscribe({
       next: (t) => {
         this.falhou.set(false);
+        this.expiraLocal = Date.now() + VALIDADE_LOCAL_MS;
         this.token.set(t);
         this.atualizarContagem();
         // SVG gerado localmente pela biblioteca a partir do token (sem conteúdo de terceiros).
@@ -84,7 +89,7 @@ export class MeuQr {
     if (!t) {
       return;
     }
-    const segundos = Math.max(0, Math.round((Date.parse(t.expiraEm) - Date.now()) / 1000));
+    const segundos = Math.max(0, Math.round((this.expiraLocal - Date.now()) / 1000));
     this.restante.set(segundos);
     if (segundos === 0) {
       this.token.set(null);
